@@ -128,11 +128,9 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(() => {
-    if (defaultOpen !== undefined) return defaultOpen;
-    if (typeof document === 'undefined') return true;
-    return parseSidebarStateCookie(document.cookie) ?? true;
-  });
+  // Keep the server render and the first client render deterministic. The
+  // persisted value is restored in an effect after hydration below.
+  const [_open, _setOpen] = React.useState(() => defaultOpen ?? true);
   const open = openProp ?? _open;
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -148,6 +146,12 @@ function SidebarProvider({
     },
     [setOpenProp, open],
   );
+
+  React.useEffect(() => {
+    if (defaultOpen !== undefined) return;
+    const persisted = parseSidebarStateCookie(document.cookie);
+    if (persisted !== undefined) _setOpen(persisted);
+  }, [defaultOpen]);
 
   // Helper to toggle the sidebar.
   //
@@ -209,14 +213,10 @@ function SidebarProvider({
 
   // ── Resizable width ────────────────────────────────────────────────────
   // `null` means "use the default"; a number is the user's persisted choice.
-  // Read straight out of the cookie in the initializer so a resized sidebar
-  // never paints at 256px first and then jumps — the wrapper below carries
-  // `suppressHydrationWarning` because that read makes the client's first
-  // style attribute legitimately differ from the server's.
+  // The persisted value is restored after hydration so width-dependent
+  // attributes such as `aria-valuenow` match on the server and client.
   const wrapperRef = React.useRef<HTMLDivElement | null>(null);
-  const [width, setWidthState] = React.useState<number | null>(() =>
-    typeof document === 'undefined' ? null : parseSidebarWidthCookie(document.cookie),
-  );
+  const [width, setWidthState] = React.useState<number | null>(null);
 
   const setWidth = React.useCallback((next: number) => {
     const clamped = clampSidebarWidth(next, window.innerWidth);
@@ -239,10 +239,16 @@ function SidebarProvider({
     wrapperRef.current?.style.setProperty('--sidebar-width', `${next}px`);
   }, []);
 
-  // The ratio cap is a live rule, not a write-time one: a stored 416px must
-  // not survive the window being dragged down to 900px. Runs once on mount too,
-  // which is what re-clamps a value persisted at a wider viewport.
+  // Restore the persisted width and keep the ratio cap live. A stored 416px
+  // must not survive the window being dragged down to 900px.
   React.useEffect(() => {
+    const persisted = parseSidebarWidthCookie(document.cookie);
+    if (persisted !== null) {
+      const restored = Math.min(persisted, maxSidebarWidth(window.innerWidth));
+      wrapperRef.current?.style.setProperty('--sidebar-width', `${restored}px`);
+      setWidthState(restored);
+    }
+
     const capToViewport = () =>
       setWidthState((current) => {
         if (current === null) return current;
@@ -313,7 +319,6 @@ function SidebarProvider({
       <TooltipProvider delayDuration={0}>
         <div
           data-slot="sidebar-wrapper"
-          suppressHydrationWarning
           style={
             {
               '--sidebar-width': width === null ? SIDEBAR_WIDTH : `${width}px`,

@@ -52,7 +52,7 @@ import { deduplicateProjects, loadProjects, saveProjects } from '@/lib/project-s
 type AppAction = 'save' | 'create' | 'select' | 'start' | 'stop' | 'restart' | 'apply' | 'choice';
 
 function WorldConsole() {
-  const [projects, setProjects] = useState<ProjectRecord[]>(loadProjects);
+  const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [world, setWorld] = useState<WorldSnapshot | null>(null);
   const [run, setRun] = useState<RunSnapshot | null>(null);
@@ -179,6 +179,7 @@ function WorldConsole() {
 
   useEffect(() => {
     let alive = true;
+    setProjects(loadProjects());
     getCurrentWorld()
       .then((response) => {
         if (alive) applyWorldResponse(response);
