@@ -1,0 +1,21 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left Wing -->
+  <ellipse cx="18" cy="18" rx="12" ry="8" transform="rotate(-30 18 18)" fill="#FFD93D" stroke="#1a1a1a" stroke-width="2.5"/>
+  <!-- Right Wing -->
+  <ellipse cx="46" cy="18" rx="12" ry="8" transform="rotate(30 46 18)" fill="#FFD93D" stroke="#1a1a1a" stroke-width="2.5"/>
+  <!-- Body -->
+  <rect x="12" y="22" width="40" height="34" rx="17" fill="#FF6B02" stroke="#1a1a1a" stroke-width="3"/>
+  <!-- Stripes (centered on body y=39) -->
+  <rect x="16" y="29" width="32" height="5" fill="#1a1a1a" opacity="0.2" rx="1"/>
+  <rect x="13" y="37" width="38" height="5" fill="#1a1a1a" opacity="0.2"/>
+  <rect x="16" y="45" width="32" height="5" fill="#1a1a1a" opacity="0.2" rx="1"/>
+  <!-- Play Triangle (centered at x=32, y=39) -->
+  <path d="M25 31L43 39L25 47Z" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M26.5 32.5L41 39L26.5 45.5Z" fill="white"/>
+  <!-- Left Antenna -->
+  <line x1="24" y1="22" x2="18" y2="10" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="17" cy="9" r="3" fill="#FFD93D" stroke="#1a1a1a" stroke-width="2"/>
+  <!-- Right Antenna -->
+  <line x1="40" y1="22" x2="46" y2="10" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="47" cy="9" r="3" fill="#FFD93D" stroke="#1a1a1a" stroke-width="2"/>
+</svg>

@@ -1,0 +1,11 @@
+export const STATUS_RING = {
+  BOX: 16,
+  CENTER: 8,
+  RADIUS: 6.3,
+  STROKE: 1.5,
+  DASH: 3,
+  GAP: 3.4,
+} as const;
+
+export const STATUS_RING_OUTER_RADIUS = STATUS_RING.RADIUS + STATUS_RING.STROKE / 2;
+export const STATUS_RING_PITCH = STATUS_RING.DASH + STATUS_RING.GAP;
