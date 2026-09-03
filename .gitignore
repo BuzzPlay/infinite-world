@@ -1,0 +1,33 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# JavaScript dependencies and build output
+node_modules/
+.pnpm-store/
+dist/
+.next/
+build/
+.tsbuild/
+coverage/
+*.tsbuildinfo
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime output
+logs/
+*.log
+/runtime/
+tmp/
+
+# OS files
+.DS_Store

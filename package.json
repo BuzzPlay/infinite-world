@@ -1,0 +1,15 @@
+{
+  "name": "infinite-world",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter @infinite-world/web dev",
+    "dev:api": "pnpm --filter @infinite-world/api dev",
+    "dev": "pnpm --parallel dev:web dev:api",
+    "build:web": "pnpm --filter @infinite-world/web build",
+    "build:api": "pnpm --filter @infinite-world/api build",
+    "typecheck:contracts": "pnpm --filter @infinite-world/api-contract typecheck",
+    "typecheck:web": "pnpm --filter @infinite-world/web typecheck",
+    "typecheck:api": "pnpm --filter @infinite-world/api typecheck"
+  }
+}
