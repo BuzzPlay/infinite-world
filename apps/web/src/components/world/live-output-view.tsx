@@ -6,7 +6,11 @@ import type { LiveOutputSnapshot, RunState, SceneSnapshot } from '@infinite-worl
 import { Button } from '../ui/button';
 import { PreviewCanvas, type RunAction } from './preview-panel';
 import { LiveRunDialog } from './live-run-dialog';
-import { defaultLiveOutputSettings, platformLabel, type LiveOutputSettings } from './live-output-types';
+import {
+  defaultLiveOutputSettings,
+  platformLabel,
+  type LiveOutputSettings,
+} from './live-output-types';
 import { connectBrowserStream, type BrowserStreamState } from '../../lib/browser-stream';
 
 interface LiveOutputViewProps {
@@ -34,7 +38,8 @@ export function LiveOutputView(props: LiveOutputViewProps) {
   const [muted, setMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasMedia = Boolean(props.currentScene?.previewUrl.trim());
-  const browserOutputActive = props.isActive && props.outputMode === 'webrtc' && props.worldId !== null;
+  const browserOutputActive =
+    props.isActive && props.outputMode === 'webrtc' && props.worldId !== null;
   const outputActive = props.isActive && props.outputMode !== null;
 
   useEffect(() => {
@@ -76,16 +81,45 @@ export function LiveOutputView(props: LiveOutputViewProps) {
   return (
     <div className="relative h-full min-h-[100dvh] w-full overflow-hidden bg-background">
       <PreviewCanvas {...props} showRunCta={false} />
-      {browserOutputActive ? <video ref={videoRef} className={streamState === 'connected' ? 'absolute inset-0 z-[1] size-full object-cover' : 'hidden'} autoPlay muted={muted} playsInline controls={false} aria-label="Live browser output" /> : null}
+      {browserOutputActive ? (
+        <video
+          ref={videoRef}
+          className={
+            streamState === 'connected' ? 'absolute inset-0 z-[1] size-full object-cover' : 'hidden'
+          }
+          autoPlay
+          muted={muted}
+          playsInline
+          controls={false}
+          aria-label="Live browser output"
+        />
+      ) : null}
       <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-4">
         {outputActive ? (
           <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-white/20 bg-black/60 px-4 py-3 text-white shadow-2xl backdrop-blur-md">
-            <span className="grid size-8 place-items-center rounded-md bg-red-500/90"><Radio size={16} aria-hidden="true" /></span>
-            <span className="grid gap-0.5"><strong className="text-sm font-medium">Output is ready</strong><span className="text-[11px] text-white/60">{platformLabel(settings.platform)} · {settings.title || 'Untitled stream'}</span></span>
-            <Button size="sm" variant="secondary" onClick={() => props.onAction('stop')}><Square size={13} aria-hidden="true" /> Stop</Button>
+            <span className="grid size-8 place-items-center rounded-md bg-red-500/90">
+              <Radio size={16} aria-hidden="true" />
+            </span>
+            <span className="grid gap-0.5">
+              <strong className="text-sm font-medium">Output is ready</strong>
+              <span className="text-[11px] text-white/60">
+                {platformLabel(settings.platform)} · {settings.title || 'Untitled stream'}
+              </span>
+            </span>
+            <Button size="sm" variant="secondary" onClick={() => props.onAction('stop')}>
+              <Square size={13} aria-hidden="true" /> Stop
+            </Button>
           </div>
         ) : (
-          <Button className={hasMedia ? 'pointer-events-auto h-12 rounded-full bg-white px-6 text-base font-semibold text-neutral-950 shadow-2xl hover:bg-white/90' : 'pointer-events-auto h-12 rounded-full px-6 text-base font-semibold shadow-lg'} variant="default" onClick={() => setDialogOpen(true)}>
+          <Button
+            className={
+              hasMedia
+                ? 'pointer-events-auto h-12 rounded-full bg-white px-6 text-base font-semibold text-neutral-950 shadow-2xl hover:bg-white/90'
+                : 'pointer-events-auto h-12 rounded-full px-6 text-base font-semibold shadow-lg'
+            }
+            variant="default"
+            onClick={() => setDialogOpen(true)}
+          >
             <Radio size={17} aria-hidden="true" /> Run
           </Button>
         )}
@@ -103,7 +137,11 @@ export function LiveOutputView(props: LiveOutputViewProps) {
             if (!nextMuted) void videoRef.current?.play().catch(() => undefined);
           }}
         >
-          {muted ? <VolumeX size={15} aria-hidden="true" /> : <Volume2 size={15} aria-hidden="true" />}
+          {muted ? (
+            <VolumeX size={15} aria-hidden="true" />
+          ) : (
+            <Volume2 size={15} aria-hidden="true" />
+          )}
         </Button>
       ) : null}
       <LiveRunDialog

@@ -107,10 +107,19 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
 }
 
 function CommandEmpty({ ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
-  return <CommandPrimitive.Empty data-slot="command-empty" className="py-6 text-center text-sm" {...props} />;
+  return (
+    <CommandPrimitive.Empty
+      data-slot="command-empty"
+      className="py-6 text-center text-sm"
+      {...props}
+    />
+  );
 }
 
-function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
@@ -123,8 +132,17 @@ function CommandGroup({ className, ...props }: React.ComponentProps<typeof Comma
   );
 }
 
-function CommandSeparator({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
-  return <CommandPrimitive.Separator data-slot="command-separator" className={cn('-mx-1 h-px bg-border', className)} {...props} />;
+function CommandSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+  return (
+    <CommandPrimitive.Separator
+      data-slot="command-separator"
+      className={cn('-mx-1 h-px bg-border', className)}
+      {...props}
+    />
+  );
 }
 
 function CommandItem({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
@@ -180,15 +198,36 @@ function CommandItemHoverCard({
 }
 
 function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) {
-  return <span data-slot="command-shortcut" className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)} {...props} />;
+  return (
+    <span
+      data-slot="command-shortcut"
+      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
+      {...props}
+    />
+  );
 }
 
 function CommandFooter({ className, children, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="command-footer" className={cn('flex items-center gap-4 border-t px-4 py-2 text-xs text-muted-foreground', className)} {...props}>{children}</div>;
+  return (
+    <div
+      data-slot="command-footer"
+      className={cn(
+        'flex items-center gap-4 border-t px-4 py-2 text-xs text-muted-foreground',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }
 
 function CommandKbd({ children }: { children: React.ReactNode }) {
-  return <KbdGroup><Kbd>{children}</Kbd></KbdGroup>;
+  return (
+    <KbdGroup>
+      <Kbd>{children}</Kbd>
+    </KbdGroup>
+  );
 }
 
 function CommandPopover({
@@ -202,14 +241,22 @@ function CommandPopover({
   children: React.ReactNode;
   modal?: boolean;
 }) {
-  return <Popover open={open} onOpenChange={onOpenChange} modal={modal}>{children}</Popover>;
+  return (
+    <Popover open={open} onOpenChange={onOpenChange} modal={modal}>
+      {children}
+    </Popover>
+  );
 }
 
 const CommandPopoverTrigger = React.forwardRef<
   React.ElementRef<typeof PopoverTrigger>,
   Omit<React.ComponentPropsWithoutRef<typeof PopoverTrigger>, 'asChild'>
 >(function CommandPopoverTrigger({ children, ...props }, ref) {
-  return <PopoverTrigger ref={ref} asChild {...props}>{children}</PopoverTrigger>;
+  return (
+    <PopoverTrigger ref={ref} asChild {...props}>
+      {children}
+    </PopoverTrigger>
+  );
 });
 
 function CommandPopoverContent({
@@ -239,7 +286,9 @@ function CommandPopoverContent({
         className,
       )}
     >
-      <Command shouldFilter={shouldFilter} className={CMDK_SHARED_CLASSES}>{children}</Command>
+      <Command shouldFilter={shouldFilter} className={CMDK_SHARED_CLASSES}>
+        {children}
+      </Command>
     </PopoverContent>
   );
 }

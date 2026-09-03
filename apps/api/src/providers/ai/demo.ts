@@ -27,7 +27,14 @@ export class DemoGenerator {
   }
 }
 
-function svgDataUrl(values: { width: number; height: number; hue: number; title: string; subtitle: string; prompt: string }) {
+function svgDataUrl(values: {
+  width: number;
+  height: number;
+  hue: number;
+  title: string;
+  subtitle: string;
+  prompt: string;
+}) {
   const title = escapeXml(values.title);
   const subtitle = escapeXml(values.subtitle);
   const prompt = escapeXml(values.prompt.slice(0, 130));
@@ -36,5 +43,10 @@ function svgDataUrl(values: { width: number; height: number; hue: number; title:
 }
 
 function escapeXml(value: string) {
-  return value.replace(/[<>&"']/g, (character) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[character] ?? character);
+  return value.replace(
+    /[<>&"']/g,
+    (character) =>
+      ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[character] ??
+      character,
+  );
 }

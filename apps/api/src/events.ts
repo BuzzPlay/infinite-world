@@ -16,9 +16,10 @@ export class EventHub {
   }
 
   publish(event: RealtimeEvent) {
-    const publicEvent = 'run' in event
-      ? { ...event, run: publicRun(event.run as StoredRun) } as RealtimeEvent
-      : event;
+    const publicEvent =
+      'run' in event
+        ? ({ ...event, run: publicRun(event.run as StoredRun) } as RealtimeEvent)
+        : event;
     for (const listener of this.listeners) listener(publicEvent);
   }
 

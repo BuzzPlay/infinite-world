@@ -10,16 +10,37 @@ export function Popover({ ...props }: React.ComponentProps<typeof PopoverPrimiti
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
-export const PopoverTrigger = React.forwardRef<React.ElementRef<typeof PopoverPrimitive.Trigger>, Omit<React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Trigger>, 'size'> & TriggerVariantProps>(({ className, variant, size, asChild, ...props }, ref) => (
-  <PopoverPrimitive.Trigger ref={ref} data-slot="popover-trigger" asChild={asChild} className={asChild ? className : cn(triggerVariants({ variant, size }), className)} {...props} />
+export const PopoverTrigger = React.forwardRef<
+  React.ElementRef<typeof PopoverPrimitive.Trigger>,
+  Omit<React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Trigger>, 'size'> &
+    TriggerVariantProps
+>(({ className, variant, size, asChild, ...props }, ref) => (
+  <PopoverPrimitive.Trigger
+    ref={ref}
+    data-slot="popover-trigger"
+    asChild={asChild}
+    className={asChild ? className : cn(triggerVariants({ variant, size }), className)}
+    {...props}
+  />
 ));
 PopoverTrigger.displayName = PopoverPrimitive.Trigger.displayName;
 
-export const PopoverContent = React.forwardRef<React.ElementRef<typeof PopoverPrimitive.Content>, React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { container?: HTMLElement }>(({ className, align = 'center', sideOffset = 4, container, style, ...props }, ref) => {
+export const PopoverContent = React.forwardRef<
+  React.ElementRef<typeof PopoverPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { container?: HTMLElement }
+>(({ className, align = 'center', sideOffset = 4, container, style, ...props }, ref) => {
   const depth = useDialogDepth();
   return (
     <PopoverPrimitive.Portal container={container}>
-      <PopoverPrimitive.Content ref={ref} data-slot="popover-content" align={align} sideOffset={sideOffset} className={cn(FLOATING_PANEL, 'w-72 p-4 outline-hidden', className)} style={{ zIndex: floatingZ(depth), ...style }} {...props} />
+      <PopoverPrimitive.Content
+        ref={ref}
+        data-slot="popover-content"
+        align={align}
+        sideOffset={sideOffset}
+        className={cn(FLOATING_PANEL, 'w-72 p-4 outline-hidden', className)}
+        style={{ zIndex: floatingZ(depth), ...style }}
+        {...props}
+      />
     </PopoverPrimitive.Portal>
   );
 });
@@ -30,7 +51,13 @@ export function PopoverAnchor({ ...props }: React.ComponentProps<typeof PopoverP
 }
 
 export function PopoverHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="popover-header" className={cn('flex flex-col gap-1 text-sm', className)} {...props} />;
+  return (
+    <div
+      data-slot="popover-header"
+      className={cn('flex flex-col gap-1 text-sm', className)}
+      {...props}
+    />
+  );
 }
 
 export function PopoverTitle({ className, ...props }: React.ComponentProps<'h2'>) {
@@ -38,5 +65,11 @@ export function PopoverTitle({ className, ...props }: React.ComponentProps<'h2'>
 }
 
 export function PopoverDescription({ className, ...props }: React.ComponentProps<'p'>) {
-  return <p data-slot="popover-description" className={cn('text-muted-foreground', className)} {...props} />;
+  return (
+    <p
+      data-slot="popover-description"
+      className={cn('text-muted-foreground', className)}
+      {...props}
+    />
+  );
 }

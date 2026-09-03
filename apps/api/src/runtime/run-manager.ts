@@ -1,12 +1,10 @@
-import type { GenerationSettings } from '@infinite-world/api-contract';
-
-import { EventHub } from '../events.js';
+import type { EventHub } from '../events.js';
 import { FfmpegOutput } from '../live/output/ffmpeg.js';
 import { VideoGenerator } from '../providers/ai/video.js';
-import { RunService } from '../services/run-service.js';
+import type { RunService } from '../services/run-service.js';
 import { ApiError } from '../shared/errors.js';
 import type { GeneratedScene, RunConfigInput, RunStartInput, StoredRun } from '../types.js';
-import { RuntimeState } from './state.js';
+import type { RuntimeState } from './state.js';
 
 export class RunManager {
   private readonly controllers = new Map<string, AbortController>();
@@ -20,8 +18,19 @@ export class RunManager {
   ) {}
 
   start(worldId: string, input: RunStartInput) {
-    const output = input.output ?? (input.outputMode === 'webrtc' ? { mode: 'webrtc' as const, platform: 'custom' as const, endpoint: '', streamKey: '', title: '' } : null);
-    if (output?.mode === 'rtmp' && !output.streamKey.trim()) throw new ApiError(400, 'missing_stream_key', 'streamKey is required for RTMP output');
+    const output =
+      input.output ??
+      (input.outputMode === 'webrtc'
+        ? {
+            mode: 'webrtc' as const,
+            platform: 'custom' as const,
+            endpoint: '',
+            streamKey: '',
+            title: '',
+          }
+        : null);
+    if (output?.mode === 'rtmp' && !output.streamKey.trim())
+      throw new ApiError(400, 'missing_stream_key', 'streamKey is required for RTMP output');
     const prepared = this.runs.prepare(worldId, input, output);
     const controller = new AbortController();
     this.controllers.set(worldId, controller);
@@ -111,7 +120,7 @@ export class RunManager {
 
   private maybeStartOutput(worldId: string, run: StoredRun, scene: GeneratedScene) {
     const output = run.outputSettings;
-    if (!output || output.mode !== 'rtmp' || scene.mediaType !== 'video') return;
+    if (output?.mode !== 'rtmp' || scene.mediaType !== 'video') return;
     const manager = this.outputs.get(worldId) ?? new FfmpegOutput();
     manager.start(output, scene.previewUrl);
     this.outputs.set(worldId, manager);
@@ -121,6 +130,13 @@ export class RunManager {
 function delay(milliseconds: number, signal: AbortSignal) {
   return new Promise<void>((resolve) => {
     const timer = setTimeout(resolve, milliseconds);
-    signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
   });
 }

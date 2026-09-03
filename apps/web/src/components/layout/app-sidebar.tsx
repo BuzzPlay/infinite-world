@@ -104,46 +104,51 @@ export function AppSidebar({
 
           <SidebarGroup className="py-0">
             <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <SidebarGroupAction
-              type="button"
-              title="Project options"
-              aria-label="Project options"
-            >
+            <SidebarGroupAction type="button" title="Project options" aria-label="Project options">
               <DotsThreeIcon size={16} aria-hidden="true" />
             </SidebarGroupAction>
             <SidebarGroupContent>
               <SidebarMenu>
-                {projects.length ? projects.map((project) => (
-                  <SidebarMenuItem key={project.id}>
-                    <SidebarMenuButton
-                      isActive={activeProjectId === project.id}
-                      tooltip={project.name}
-                      className="h-11 min-h-0 items-center gap-2 px-2 py-1"
-                      onClick={() => onProjectSelect(project)}
-                      aria-current={activeProjectId === project.id ? 'page' : undefined}
-                    >
-                      <Avatar
-                        size="default"
-                        className={activeProjectId === project.id ? 'bg-sidebar-primary/15 text-sidebar-primary ring-1 ring-sidebar-primary/25' : 'bg-muted text-muted-foreground'}
-                        aria-hidden="true"
+                {projects.length ? (
+                  projects.map((project) => (
+                    <SidebarMenuItem key={project.id}>
+                      <SidebarMenuButton
+                        isActive={activeProjectId === project.id}
+                        tooltip={project.name}
+                        className="h-11 min-h-0 items-center gap-2 px-2 py-1"
+                        onClick={() => onProjectSelect(project)}
+                        aria-current={activeProjectId === project.id ? 'page' : undefined}
                       >
-                        <AvatarFallback className="bg-transparent text-sm font-medium">
-                          {project.name.slice(0, 1).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="grid min-w-0 flex-1 gap-0 text-left">
-                        <span className="truncate text-sm font-medium leading-5 tracking-tight">{project.name}</span>
-                        <span className="truncate text-xs font-normal leading-4 text-muted-foreground/70">{project.generation.model}</span>
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )) : (
+                        <Avatar
+                          size="default"
+                          className={
+                            activeProjectId === project.id
+                              ? 'bg-sidebar-primary/15 text-sidebar-primary ring-1 ring-sidebar-primary/25'
+                              : 'bg-muted text-muted-foreground'
+                          }
+                          aria-hidden="true"
+                        >
+                          <AvatarFallback className="bg-transparent text-sm font-medium">
+                            {project.name.slice(0, 1).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="grid min-w-0 flex-1 gap-0 text-left">
+                          <span className="truncate text-sm font-medium leading-5 tracking-tight">
+                            {project.name}
+                          </span>
+                          <span className="truncate text-xs font-normal leading-4 text-muted-foreground/70">
+                            {project.generation.model}
+                          </span>
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))
+                ) : (
                   <div className="px-2 py-3 text-sm text-muted-foreground">No projects yet.</div>
                 )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-
         </div>
       </SidebarContent>
 

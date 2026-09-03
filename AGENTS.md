@@ -43,4 +43,5 @@ Keep world creation, branch exploration, and local preview as the first product 
 
 ## Verification
 
+Run `pnpm check` before committing workspace changes. It checks formatting and runs the three TypeScript checks. Run `pnpm lint` separately when changing Web components or API boundaries.
 Run `pnpm --filter @infinite-world/api typecheck` after changing API implementation and the relevant `pnpm --filter @infinite-world/web` command after adding Web implementation. Run both builds when changing the shared contracts package or an API response.

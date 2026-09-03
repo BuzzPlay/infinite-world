@@ -1,7 +1,0 @@
-node_modules/
-.pnpm-store/
-dist/
-build/
-coverage/
-*.tsbuildinfo
-.git/

@@ -24,6 +24,7 @@ This file records project progress without turning the root README into a chrono
 - Added SDK adapters for hosted generation, prompt providers, and Twitch chat.
 - Added the optional NDJSON process adapter for local model runners and an FFmpeg output boundary.
 - Removed the previous service implementation and its language-specific skills.
+- Added a root Biome formatter and shared TypeScript compiler base configuration.
 - Verified API and Web type checks and production builds.
 
 ## Log Format

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import type * as React from 'react';
 
 import { Card } from './card';
 import { cn } from '@/lib/utils';
@@ -29,12 +29,27 @@ export function SectionCard({
   const hasHeader = title != null || description != null || action != null;
 
   return (
-    <Card className={cn('gap-0 overflow-hidden py-0', tone === 'destructive' && 'border-destructive/25', className)}>
+    <Card
+      className={cn(
+        'gap-0 overflow-hidden py-0',
+        tone === 'destructive' && 'border-destructive/25',
+        className,
+      )}
+    >
       {hasHeader ? (
         <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4 sm:px-6">
           <div className="min-w-0">
-            {title != null ? <h2 className="text-base font-semibold text-foreground">{title}{count != null ? <span className="font-normal text-muted-foreground"> ({count})</span> : null}</h2> : null}
-            {description != null ? <p className="mt-0.5 text-xs text-muted-foreground">{description}</p> : null}
+            {title != null ? (
+              <h2 className="text-base font-semibold text-foreground">
+                {title}
+                {count != null ? (
+                  <span className="font-normal text-muted-foreground"> ({count})</span>
+                ) : null}
+              </h2>
+            ) : null}
+            {description != null ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            ) : null}
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>

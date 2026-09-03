@@ -7,7 +7,13 @@ import { SidebarToggle } from './sidebar-toggle';
 
 export function PageShell({ children, className }: PropsWithChildren<{ className?: string }>) {
   return (
-    <SidebarProvider className={cn('min-h-svh min-w-0 w-full max-w-full overflow-x-hidden bg-background text-foreground', className)} data-slot="page-shell">
+    <SidebarProvider
+      className={cn(
+        'min-h-svh min-w-0 w-full max-w-full overflow-x-hidden bg-background text-foreground',
+        className,
+      )}
+      data-slot="page-shell"
+    >
       {children}
       <SidebarEdgePeek />
     </SidebarProvider>
@@ -28,16 +34,29 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-12" data-slot="page-header">
+    <header
+      className="flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-12"
+      data-slot="page-header"
+    >
       <div className="flex min-w-0 items-center gap-2">
         <SidebarToggle />
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground"><span>Workspace</span><span aria-hidden="true">/</span><strong className="font-medium text-foreground">{context}</strong></div>
-          <h1 className="mt-1 truncate text-lg font-semibold text-foreground sm:text-xl">{title}</h1>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span>Workspace</span>
+            <span aria-hidden="true">/</span>
+            <strong className="font-medium text-foreground">{context}</strong>
+          </div>
+          <h1 className="mt-1 truncate text-lg font-semibold text-foreground sm:text-xl">
+            {title}
+          </h1>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        {status ? <StatusBadge className="hidden sm:inline-flex" tone={statusTone}>{status}</StatusBadge> : null}
+        {status ? (
+          <StatusBadge className="hidden sm:inline-flex" tone={statusTone}>
+            {status}
+          </StatusBadge>
+        ) : null}
         {action}
       </div>
     </header>

@@ -12,7 +12,9 @@ export function loadProjects(): ProjectRecord[] {
     if (!Array.isArray(value)) return [];
     const projects = deduplicateProjects(value.filter(isProjectRecord));
     if (window.localStorage.getItem(PROJECTS_MIGRATION_KEY) === null) {
-      const cleanedProjects = projects.filter((project) => !LEGACY_DEMO_PROJECT_NAMES.has(project.name));
+      const cleanedProjects = projects.filter(
+        (project) => !LEGACY_DEMO_PROJECT_NAMES.has(project.name),
+      );
       saveProjects(cleanedProjects);
       window.localStorage.setItem(PROJECTS_MIGRATION_KEY, '1');
       return cleanedProjects;

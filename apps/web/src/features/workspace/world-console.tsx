@@ -18,7 +18,10 @@ import { Alert, AlertActions, AlertDescription } from '@/components/ui/alert';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { PageShell } from '@/components/layout/page-shell';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
-import { CreateProjectDialog, type CreateProjectInput } from '@/components/projects/create-project-dialog';
+import {
+  CreateProjectDialog,
+  type CreateProjectInput,
+} from '@/components/projects/create-project-dialog';
 import type { ProjectRecord } from '@/components/projects/project-types';
 import { projectFromWorld } from '@/components/projects/project-types';
 import { ProviderSettingsPage } from '@/components/settings/provider-settings-page';
@@ -29,7 +32,22 @@ import { SIDEBAR_MAX_WIDTH_PX } from '@/components/ui/sidebar-width';
 import { WorldDashboard } from '@/components/world/world-dashboard';
 import { defaultWorldConfig } from '@/components/world/world-defaults';
 import { runStateRank } from '@/components/world/run-state';
-import { chooseSceneOption, createWorld, getCurrentWorld, getProviderSettings, listWorlds, restartRun, selectWorld, startRun, stopRun, subscribeToEvents, subscribeToRunMetrics, updateProviderSettings, updateRunConfig, updateWorld } from '@/lib/api';
+import {
+  chooseSceneOption,
+  createWorld,
+  getCurrentWorld,
+  getProviderSettings,
+  listWorlds,
+  restartRun,
+  selectWorld,
+  startRun,
+  stopRun,
+  subscribeToEvents,
+  subscribeToRunMetrics,
+  updateProviderSettings,
+  updateRunConfig,
+  updateWorld,
+} from '@/lib/api';
 import { deduplicateProjects, loadProjects, saveProjects } from '@/lib/project-store';
 type AppAction = 'save' | 'create' | 'select' | 'start' | 'stop' | 'restart' | 'apply' | 'choice';
 
@@ -68,7 +86,8 @@ function WorldConsole() {
   const previewRef = useRef<HTMLDivElement>(null);
 
   const applyRun = useCallback((nextRun: RunSnapshot) => {
-    const isNewRun = runIdRef.current !== nextRun.id || runStartedAtRef.current !== nextRun.startedAt;
+    const isNewRun =
+      runIdRef.current !== nextRun.id || runStartedAtRef.current !== nextRun.startedAt;
     if (isNewRun) setScenes(nextRun.scenes);
     runStartedAtRef.current = nextRun.startedAt;
     runIdRef.current = nextRun.id;
@@ -80,31 +99,50 @@ function WorldConsole() {
 
   const syncProject = useCallback((response: WorldResponse, existingProjectId?: string) => {
     setProjects((current) => {
-      const existing = current.find((project) => project.worldId === response.world.id)
-        ?? (existingProjectId ? current.find((project) => project.id === existingProjectId) : undefined);
-      const nextProject = projectFromWorld(response.world, response.providerApiKeyConfigured, existing);
-      const next = deduplicateProjects([nextProject, ...current.filter((project) => project.id !== nextProject.id && project.worldId !== response.world.id)]);
+      const existing =
+        current.find((project) => project.worldId === response.world.id) ??
+        (existingProjectId
+          ? current.find((project) => project.id === existingProjectId)
+          : undefined);
+      const nextProject = projectFromWorld(
+        response.world,
+        response.providerApiKeyConfigured,
+        existing,
+      );
+      const next = deduplicateProjects([
+        nextProject,
+        ...current.filter(
+          (project) => project.id !== nextProject.id && project.worldId !== response.world.id,
+        ),
+      ]);
       saveProjects(next);
       return next;
     });
     setActiveProjectId(existingProjectId ?? response.world.id);
   }, []);
 
-  const applyWorldResponse = useCallback((response: WorldResponse, existingProjectId?: string) => {
-    worldIdRef.current = response.world.id;
-    setWorld(response.world);
-    applyRun(response.run);
-    setDraft(worldToConfig(response.world));
-    syncProject(response, existingProjectId);
-    if (response.run.currentScene) {
-      setScenes((current) => mergeScenes(current, response.run.currentScene!));
-    }
-  }, [applyRun, syncProject]);
+  const applyWorldResponse = useCallback(
+    (response: WorldResponse, existingProjectId?: string) => {
+      worldIdRef.current = response.world.id;
+      setWorld(response.world);
+      applyRun(response.run);
+      setDraft(worldToConfig(response.world));
+      syncProject(response, existingProjectId);
+      const currentScene = response.run.currentScene;
+      if (currentScene) {
+        setScenes((current) => mergeScenes(current, currentScene));
+      }
+    },
+    [applyRun, syncProject],
+  );
 
-  const applyRunResponse = useCallback((nextWorld: WorldSnapshot, nextRun: RunSnapshot) => {
-    setWorld(nextWorld);
-    applyRun(nextRun);
-  }, [applyRun]);
+  const applyRunResponse = useCallback(
+    (nextWorld: WorldSnapshot, nextRun: RunSnapshot) => {
+      setWorld(nextWorld);
+      applyRun(nextRun);
+    },
+    [applyRun],
+  );
 
   const applyEvent = useCallback(
     (event: RealtimeEvent) => {
@@ -227,7 +265,7 @@ function WorldConsole() {
         applyWorldResponse(response, activeProjectId ?? undefined);
         setNotice('Project saved');
       } else if (action === 'apply' && world) {
-        const response = await updateRunConfig(world.id, {
+        await updateRunConfig(world.id, {
           mode: draft.generation.mode,
           width: draft.generation.width,
           height: draft.generation.height,
@@ -365,7 +403,10 @@ function WorldConsole() {
         <AppSidebar
           projects={projects}
           activeProjectId={activeProjectId}
-          onCreateProject={() => { setSettingsOpen(false); setCreateProjectOpen(true); }}
+          onCreateProject={() => {
+            setSettingsOpen(false);
+            setCreateProjectOpen(true);
+          }}
           onProjectSelect={(project) => void selectProject(project)}
           onOpenSettings={openSettings}
           onOpenWorkspace={openWorkspace}
@@ -374,54 +415,91 @@ function WorldConsole() {
       </div>
       <SidebarInset className="min-h-0 min-w-0">
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {settingsOpen ? (
-          <ProviderSettingsPage
-            settings={providerSettings}
-            loading={settingsLoading}
-            busy={settingsBusy}
-            onSave={saveProviderSettings}
-          />
-        ) : world ? (
-          <WorldDashboard
-            draft={draft}
-            run={run}
-            scenes={scenes}
-            busy={busy}
-            loading={loading}
-            twitchStreamKeyConfigured={providerSettings.twitchStreamKeyConfigured}
-            notice={notice}
-            onDismissNotice={() => setNotice(null)}
-            previewRef={previewRef}
-            onNameChange={(name) => setDraft((current) => ({ ...current, name }))}
-            onPromptChange={(prompt) => setDraft((current) => ({ ...current, prompt }))}
-            onGenerationChange={(changes) => setDraft((current) => ({ ...current, generation: { ...current.generation, ...changes } }))}
-            onAction={(action, output) => void perform(action, output)}
-            onOptionSelect={(optionId) => void chooseOption(optionId)}
-            onSave={() => void perform('save')}
-            onApplyRuntime={() => void perform('apply')}
-          />
-        ) : (
-          <>
-            <SidebarToggle placement="floating" />
-            <SidebarTrigger className="pointer-events-auto absolute left-3 top-3 z-30 md:hidden" title="Open sidebar" aria-label="Open sidebar" />
-            {notice ? <Alert variant="warning" className="absolute left-4 right-4 top-4 z-20 mx-auto max-w-xl"><AlertDescription>{notice}</AlertDescription><AlertActions><Button size="icon" variant="ghost" className="size-7 text-amber-800 hover:bg-amber-500/10 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200" onClick={() => setNotice(null)} aria-label="Dismiss notice"><X size={15} aria-hidden="true" /></Button></AlertActions></Alert> : null}
-            <div className="grid h-full min-h-0 min-w-0 place-items-center px-4 py-8 sm:px-6 lg:px-12">
-              {showEmptyState ? (
-                <SectionCard
-                  className="w-full max-w-xl"
-                  title="Create your project"
-                  description="Configure a world, then open its live preview."
-                  bodyClassName="flex flex-wrap items-center justify-between gap-4 px-5 pb-5 pt-0"
+          {settingsOpen ? (
+            <ProviderSettingsPage
+              settings={providerSettings}
+              loading={settingsLoading}
+              busy={settingsBusy}
+              onSave={saveProviderSettings}
+            />
+          ) : world ? (
+            <WorldDashboard
+              draft={draft}
+              run={run}
+              scenes={scenes}
+              busy={busy}
+              loading={loading}
+              twitchStreamKeyConfigured={providerSettings.twitchStreamKeyConfigured}
+              notice={notice}
+              onDismissNotice={() => setNotice(null)}
+              previewRef={previewRef}
+              onNameChange={(name) => setDraft((current) => ({ ...current, name }))}
+              onPromptChange={(prompt) => setDraft((current) => ({ ...current, prompt }))}
+              onGenerationChange={(changes) =>
+                setDraft((current) => ({
+                  ...current,
+                  generation: { ...current.generation, ...changes },
+                }))
+              }
+              onAction={(action, output) => void perform(action, output)}
+              onOptionSelect={(optionId) => void chooseOption(optionId)}
+              onSave={() => void perform('save')}
+              onApplyRuntime={() => void perform('apply')}
+            />
+          ) : (
+            <>
+              <SidebarToggle placement="floating" />
+              <SidebarTrigger
+                className="pointer-events-auto absolute left-3 top-3 z-30 md:hidden"
+                title="Open sidebar"
+                aria-label="Open sidebar"
+              />
+              {notice ? (
+                <Alert
+                  variant="warning"
+                  className="absolute left-4 right-4 top-4 z-20 mx-auto max-w-xl"
                 >
-                    <p className="max-w-md text-sm leading-normal text-muted-foreground">Projects keep the prompt and generation settings for each world in this browser.</p>
-                    <Button variant="default" onClick={() => setCreateProjectOpen(true)}><Plus size={15} aria-hidden="true" /> New project</Button>
-                </SectionCard>
-              ) : (
-                <div className="grid min-h-72 place-items-center text-sm text-muted-foreground" role="status">Loading project</div>
-              )}
-            </div>
-          </>
-        )}
+                  <AlertDescription>{notice}</AlertDescription>
+                  <AlertActions>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 text-amber-800 hover:bg-amber-500/10 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
+                      onClick={() => setNotice(null)}
+                      aria-label="Dismiss notice"
+                    >
+                      <X size={15} aria-hidden="true" />
+                    </Button>
+                  </AlertActions>
+                </Alert>
+              ) : null}
+              <div className="grid h-full min-h-0 min-w-0 place-items-center px-4 py-8 sm:px-6 lg:px-12">
+                {showEmptyState ? (
+                  <SectionCard
+                    className="w-full max-w-xl"
+                    title="Create your project"
+                    description="Configure a world, then open its live preview."
+                    bodyClassName="flex flex-wrap items-center justify-between gap-4 px-5 pb-5 pt-0"
+                  >
+                    <p className="max-w-md text-sm leading-normal text-muted-foreground">
+                      Projects keep the prompt and generation settings for each world in this
+                      browser.
+                    </p>
+                    <Button variant="default" onClick={() => setCreateProjectOpen(true)}>
+                      <Plus size={15} aria-hidden="true" /> New project
+                    </Button>
+                  </SectionCard>
+                ) : (
+                  <div
+                    className="grid min-h-72 place-items-center text-sm text-muted-foreground"
+                    role="status"
+                  >
+                    Loading project
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </SidebarInset>
       <CreateProjectDialog
@@ -444,17 +522,15 @@ function worldToConfig(world: WorldSnapshot): WorldConfig {
   return { name: world.name, prompt: world.prompt, generation: world.generation };
 }
 
-function projectToConfig(project: ProjectRecord): WorldConfig {
-  return { name: project.name, prompt: project.prompt, generation: project.generation };
-}
-
 function mergeScenes(current: SceneSnapshot[], next: SceneSnapshot): SceneSnapshot[] {
   return mergeSceneList(current, [next]);
 }
 
 function mergeSceneList(current: SceneSnapshot[], next: SceneSnapshot[]): SceneSnapshot[] {
   const scenes = new Map(current.map((scene) => [scene.id, scene]));
-  next.forEach((scene) => scenes.set(scene.id, scene));
+  next.forEach((scene) => {
+    scenes.set(scene.id, scene);
+  });
   return [...scenes.values()].sort((left, right) => left.sequence - right.sequence).slice(-50);
 }
 
@@ -462,7 +538,10 @@ function preferLatestRun(current: RunSnapshot | null, next: RunSnapshot): RunSna
   if (!current || current.id !== next.id) return next;
   if (current.startedAt !== next.startedAt) return next;
   if (current.sceneCount > next.sceneCount) return current;
-  if (current.sceneCount === next.sceneCount && runStateRank(current.state) > runStateRank(next.state)) {
+  if (
+    current.sceneCount === next.sceneCount &&
+    runStateRank(current.state) > runStateRank(next.state)
+  ) {
     return current;
   }
   return next;

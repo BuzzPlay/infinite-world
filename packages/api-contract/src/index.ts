@@ -1,10 +1,4 @@
-export type RunState =
-  | 'created'
-  | 'preparing'
-  | 'running'
-  | 'stopping'
-  | 'stopped'
-  | 'failed';
+export type RunState = 'created' | 'preparing' | 'running' | 'stopping' | 'stopped' | 'failed';
 
 export type GenerationMode = 'regular' | 'nightmare' | 'cohesive' | 'visual' | 'chaotic';
 
@@ -198,7 +192,14 @@ export interface WorldListResponse {
 
 export type LivePlatform = 'youtube' | 'twitch' | 'custom';
 export type LiveOutputMode = 'rtmp' | 'webrtc';
-export type ConnectionState = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'stopped' | 'failed';
+export type ConnectionState =
+  | 'idle'
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'reconnecting'
+  | 'stopped'
+  | 'failed';
 
 export interface LiveOutputSettings {
   mode: LiveOutputMode;
@@ -314,7 +315,8 @@ export const DEFAULT_GENERATION: GenerationSettings = {
   aspectRatio: null,
   guidanceScale: 2,
   seed: null,
-  negativePrompt: 'worst quality, inconsistent motion, blurry, jittery, distorted, static scene, frozen frame, no motion, repetitive, looping',
+  negativePrompt:
+    'worst quality, inconsistent motion, blurry, jittery, distorted, static scene, frozen frame, no motion, repetitive, looping',
   initialImageUrl: null,
   numFrames: 121,
   strength: 1,

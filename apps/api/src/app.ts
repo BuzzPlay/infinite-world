@@ -18,7 +18,7 @@ import { WorldService } from './services/world-service.js';
 import { ApiError } from './shared/errors.js';
 
 export function buildApp() {
-  const app = Fastify({ logger: process.env.INFINITE_WORLD_LOG_LEVEL ? true : false });
+  const app = Fastify({ logger: Boolean(process.env.INFINITE_WORLD_LOG_LEVEL) });
   const state = new RuntimeState();
   const events = new EventHub();
   const worlds = new WorldService(state);
@@ -38,10 +38,14 @@ export function buildApp() {
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ApiError) {
-      return reply.status(error.statusCode).send({ error: { code: error.code, message: error.message } });
+      return reply
+        .status(error.statusCode)
+        .send({ error: { code: error.code, message: error.message } });
     }
     app.log.error(error);
-    return reply.status(500).send({ error: { code: 'internal_error', message: 'The API request failed' } });
+    return reply
+      .status(500)
+      .send({ error: { code: 'internal_error', message: 'The API request failed' } });
   });
   return app;
 }

@@ -4,7 +4,11 @@ import type {
   RunMetricsResponse,
 } from '@infinite-world/api-contract';
 
-import { applyGenerationInput, isHostedGenerationModel, validateTemperature } from '../domain/generation.js';
+import {
+  applyGenerationInput,
+  isHostedGenerationModel,
+  validateTemperature,
+} from '../domain/generation.js';
 import {
   appendScene,
   clone,
@@ -12,11 +16,10 @@ import {
   newRun,
   nowIso,
   outputSnapshot,
-  publicRun,
   touchMetrics,
 } from '../domain/run.js';
 import { ApiError } from '../shared/errors.js';
-import { RuntimeState } from '../runtime/state.js';
+import type { RuntimeState } from '../runtime/state.js';
 import type { GeneratedScene, RunConfigInput, RunStartInput, StoredRun } from '../types.js';
 
 export class RunService {
@@ -34,7 +37,11 @@ export class RunService {
     if (isActive(run)) throw new ApiError(409, 'invalid_state', 'the project is already running');
     const generation = applyGenerationInput(world.generation, input);
     if (isHostedGenerationModel(generation.model) && !this.state.provider.falApiKey) {
-      throw new ApiError(400, 'missing_provider_key', 'configure a provider key before starting hosted generation');
+      throw new ApiError(
+        400,
+        'missing_provider_key',
+        'configure a provider key before starting hosted generation',
+      );
     }
     if (input.llmTemperature !== undefined) validateTemperature(input.llmTemperature);
     const nextWorld = { ...world, generation };
@@ -84,7 +91,8 @@ export class RunService {
   restart(worldId: string) {
     this.requireActiveWorld(worldId);
     const previous = this.requireRun(worldId);
-    if (isActive(previous)) throw new ApiError(409, 'invalid_state', 'stop the current run before restarting');
+    if (isActive(previous))
+      throw new ApiError(409, 'invalid_state', 'stop the current run before restarting');
     const world = this.state.getWorld(worldId);
     if (!world) throw new ApiError(404, 'not_found', 'world does not exist');
     const nextRun = newRun(worldId);
@@ -108,7 +116,8 @@ export class RunService {
 
   choose(worldId: string, optionId: string) {
     const run = this.requireRun(worldId);
-    if (run.state !== 'running') throw new ApiError(409, 'invalid_state', 'choose a direction while the run is running');
+    if (run.state !== 'running')
+      throw new ApiError(409, 'invalid_state', 'choose a direction while the run is running');
     const current = run.currentScene;
     const option = current?.options.find((candidate) => candidate.id === optionId);
     if (!option) throw new ApiError(404, 'not_found', 'scene option does not exist');
@@ -123,7 +132,12 @@ export class RunService {
     const world = this.state.getWorld(worldId);
     if (!world) throw new ApiError(404, 'not_found', 'world does not exist');
     const run = this.requireRun(worldId);
-    if (isActive(run)) throw new ApiError(409, 'invalid_state', 'stop the current run before applying project settings');
+    if (isActive(run))
+      throw new ApiError(
+        409,
+        'invalid_state',
+        'stop the current run before applying project settings',
+      );
     const generation = applyGenerationInput(world.generation, input);
     this.state.setWorld(worldId, { ...world, generation });
     this.state.persist();
@@ -140,7 +154,8 @@ export class RunService {
 
   private requireActiveWorld(worldId: string) {
     if (!this.state.getWorld(worldId)) throw new ApiError(404, 'not_found', 'world does not exist');
-    if (this.state.activeWorldId !== worldId) throw new ApiError(409, 'invalid_state', 'world is not the active project');
+    if (this.state.activeWorldId !== worldId)
+      throw new ApiError(409, 'invalid_state', 'world is not the active project');
   }
 
   private requireRun(worldId: string) {

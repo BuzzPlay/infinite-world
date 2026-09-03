@@ -49,7 +49,12 @@ export function StatusBadge({
   return (
     <span
       data-slot="status-badge"
-      className={cn('inline-flex w-fit items-center gap-1 rounded-2xl px-2 py-0.5 text-xs font-medium whitespace-nowrap', STATUS_BG[tone], STATUS_TEXT[tone], className)}
+      className={cn(
+        'inline-flex w-fit items-center gap-1 rounded-2xl px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        STATUS_BG[tone],
+        STATUS_TEXT[tone],
+        className,
+      )}
       {...props}
     >
       {children}
@@ -57,14 +62,44 @@ export function StatusBadge({
   );
 }
 
-export function StatusDot({ tone = 'neutral', pulse = false, className }: { tone?: StatusTone; pulse?: boolean; className?: string }) {
-  return <span data-slot="status-dot" className={cn('inline-block size-2 shrink-0 rounded-full', STATUS_DOT[tone], pulse && 'animate-pulse', className)} aria-hidden="true" />;
+export function StatusDot({
+  tone = 'neutral',
+  pulse = false,
+  className,
+}: {
+  tone?: StatusTone;
+  pulse?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      data-slot="status-dot"
+      className={cn(
+        'inline-block size-2 shrink-0 rounded-full',
+        STATUS_DOT[tone],
+        pulse && 'animate-pulse',
+        className,
+      )}
+      aria-hidden="true"
+    />
+  );
 }
 
-export function DiffStat({ additions, deletions, className }: { additions?: number; deletions?: number; className?: string }) {
+export function DiffStat({
+  additions,
+  deletions,
+  className,
+}: {
+  additions?: number;
+  deletions?: number;
+  className?: string;
+}) {
   if (!additions && !deletions) return null;
   return (
-    <span data-slot="diff-stat" className={cn('inline-flex items-center gap-1.5 font-mono tabular-nums', className)}>
+    <span
+      data-slot="diff-stat"
+      className={cn('inline-flex items-center gap-1.5 font-mono tabular-nums', className)}
+    >
       {additions ? <span className={STATUS_TEXT.success}>+{additions}</span> : null}
       {deletions ? <span className={STATUS_TEXT.destructive}>-{deletions}</span> : null}
     </span>

@@ -11,7 +11,13 @@ export interface ProjectRecord {
 }
 
 export function projectFromWorld(
-  world: { id: string; name: string; prompt: string; generation: WorldConfig['generation']; createdAt: string },
+  world: {
+    id: string;
+    name: string;
+    prompt: string;
+    generation: WorldConfig['generation'];
+    createdAt: string;
+  },
   providerApiKeyConfigured: boolean,
   existing?: ProjectRecord,
 ): ProjectRecord {

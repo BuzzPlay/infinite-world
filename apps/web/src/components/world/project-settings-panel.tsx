@@ -32,7 +32,26 @@ export function ProjectSettingsPanel({
       <SectionCard
         title="Project settings"
         description="Configuration used by the next run"
-        action={<div className="flex flex-wrap items-center justify-end gap-2"><Button size="sm" variant="outline" onClick={onApplyRuntime} disabled={!running || runtimeBusy}>{runtimeBusy ? 'Applying' : 'Apply to run'}</Button><Button size="sm" variant="default" onClick={onSave} disabled={busy || running || !draft.name.trim() || !draft.prompt.trim()}>{busy ? 'Saving' : 'Save changes'}</Button></div>}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onApplyRuntime}
+              disabled={!running || runtimeBusy}
+            >
+              {runtimeBusy ? 'Applying' : 'Apply to run'}
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={onSave}
+              disabled={busy || running || !draft.name.trim() || !draft.prompt.trim()}
+            >
+              {busy ? 'Saving' : 'Save changes'}
+            </Button>
+          </div>
+        }
         flush
       >
         <WorldSetupForm
@@ -42,7 +61,9 @@ export function ProjectSettingsPanel({
           onGenerationChange={onGenerationChange}
         />
       </SectionCard>
-      <p className="px-1 text-xs leading-normal text-muted-foreground">Changes apply when the current run is stopped or when a new run starts.</p>
+      <p className="px-1 text-xs leading-normal text-muted-foreground">
+        Changes apply when the current run is stopped or when a new run starts.
+      </p>
     </div>
   );
 }

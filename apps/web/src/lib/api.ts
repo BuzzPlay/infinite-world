@@ -20,9 +20,9 @@ const jsonHeaders = { 'Content-Type': 'application/json' };
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), init);
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as
-      | { error?: { message?: string } }
-      | null;
+    const body = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
     throw new Error(body?.error?.message ?? `Request failed with status ${response.status}`);
   }
   return (await response.json()) as T;

@@ -122,6 +122,8 @@ Move to the next level only when the current level would mix responsibilities or
 
 ## Verification
 
+Run `pnpm check` before committing workspace changes. It checks formatting before the TypeScript checks. Run `pnpm lint` separately when changing Web components or API boundaries.
+
 Run the checks that cover the changed boundary:
 
 ```text

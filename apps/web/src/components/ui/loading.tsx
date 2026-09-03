@@ -4,16 +4,37 @@ import { STATUS_RING } from './status-ring';
 type LoadingVariant = 'orbit' | 'spokes' | 'ring';
 
 const SPOKE_COUNT = 8;
+const SPOKE_KEYS = [
+  'north',
+  'northeast',
+  'east',
+  'southeast',
+  'south',
+  'southwest',
+  'west',
+  'northwest',
+];
 
-export function Loading({ className, variant = 'orbit' }: { className?: string; variant?: LoadingVariant }) {
+export function Loading({
+  className,
+  variant = 'orbit',
+}: {
+  className?: string;
+  variant?: LoadingVariant;
+}) {
   const base = cn('size-4 text-foreground', className);
 
   if (variant === 'spokes') {
     return (
-      <svg className={cn(base, 'animate-spinner-spokes')} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        {Array.from({ length: SPOKE_COUNT }, (_, index) => (
+      <svg
+        className={cn(base, 'animate-spinner-spokes')}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        {SPOKE_KEYS.map((key, index) => (
           <line
-            key={index}
+            key={key}
             x1="12"
             y1="2.5"
             x2="12"
@@ -30,10 +51,35 @@ export function Loading({ className, variant = 'orbit' }: { className?: string; 
   }
 
   if (variant === 'ring') {
-    return <svg className={cn(base, 'animate-spinner-orbit')} viewBox={`0 0 ${STATUS_RING.BOX} ${STATUS_RING.BOX}`} fill="none" aria-hidden="true">
-      <circle className="opacity-25" cx={STATUS_RING.CENTER} cy={STATUS_RING.CENTER} r={STATUS_RING.RADIUS} stroke="currentColor" strokeWidth={STATUS_RING.STROKE} pathLength="62.83" />
-      <circle className="animate-spinner-dash" cx={STATUS_RING.CENTER} cy={STATUS_RING.CENTER} r={STATUS_RING.RADIUS} fill="none" stroke="currentColor" strokeWidth={STATUS_RING.STROKE} strokeLinecap="round" pathLength="62.83" />
-    </svg>;
+    return (
+      <svg
+        className={cn(base, 'animate-spinner-orbit')}
+        viewBox={`0 0 ${STATUS_RING.BOX} ${STATUS_RING.BOX}`}
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          className="opacity-25"
+          cx={STATUS_RING.CENTER}
+          cy={STATUS_RING.CENTER}
+          r={STATUS_RING.RADIUS}
+          stroke="currentColor"
+          strokeWidth={STATUS_RING.STROKE}
+          pathLength="62.83"
+        />
+        <circle
+          className="animate-spinner-dash"
+          cx={STATUS_RING.CENTER}
+          cy={STATUS_RING.CENTER}
+          r={STATUS_RING.RADIUS}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={STATUS_RING.STROKE}
+          strokeLinecap="round"
+          pathLength="62.83"
+        />
+      </svg>
+    );
   }
 
   return (

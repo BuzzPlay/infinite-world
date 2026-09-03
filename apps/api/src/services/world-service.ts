@@ -3,7 +3,7 @@ import type { WorldConfig, WorldListResponse, WorldResponse } from '@infinite-wo
 import { makeWorld } from '../domain/generation.js';
 import { clone, newRun, safeWorldResponse } from '../domain/run.js';
 import { ApiError } from '../shared/errors.js';
-import { RuntimeState } from '../runtime/state.js';
+import type { RuntimeState } from '../runtime/state.js';
 
 export class WorldService {
   constructor(private readonly state: RuntimeState) {}
@@ -19,13 +19,17 @@ export class WorldService {
   current(): WorldResponse | null {
     const world = this.state.activeWorld;
     const run = this.state.activeRun;
-    return world && run ? safeWorldResponse(world, run, Boolean(this.state.provider.falApiKey)) : null;
+    return world && run
+      ? safeWorldResponse(world, run, Boolean(this.state.provider.falApiKey))
+      : null;
   }
 
   forId(worldId: string): WorldResponse | null {
     const world = this.state.getWorld(worldId);
     const run = world ? this.state.getRun(worldId) : null;
-    return world && run ? safeWorldResponse(world, run, Boolean(this.state.provider.falApiKey)) : null;
+    return world && run
+      ? safeWorldResponse(world, run, Boolean(this.state.provider.falApiKey))
+      : null;
   }
 
   create(config: WorldConfig) {
@@ -42,7 +46,12 @@ export class WorldService {
     const current = this.state.getWorld(worldId);
     if (!current) throw new ApiError(404, 'not_found', 'world does not exist');
     const run = this.state.getRun(worldId);
-    if (run && isActiveState(run.state)) throw new ApiError(409, 'invalid_state', 'stop the current run before editing project settings');
+    if (run && isActiveState(run.state))
+      throw new ApiError(
+        409,
+        'invalid_state',
+        'stop the current run before editing project settings',
+      );
     const world = makeWorld(config, this.state.provider, current.id, current.createdAt);
     this.state.setWorld(worldId, world);
     this.state.persist();

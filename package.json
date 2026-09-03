@@ -6,10 +6,17 @@
     "dev:web": "pnpm --filter @infinite-world/web dev",
     "dev:api": "pnpm --filter @infinite-world/api dev",
     "dev": "pnpm --parallel dev:web dev:api",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "check": "pnpm format:check && pnpm typecheck:contracts && pnpm typecheck:api && pnpm typecheck:web",
     "build:web": "pnpm --filter @infinite-world/web build",
     "build:api": "pnpm --filter @infinite-world/api build",
     "typecheck:contracts": "pnpm --filter @infinite-world/api-contract typecheck",
     "typecheck:web": "pnpm --filter @infinite-world/web typecheck",
     "typecheck:api": "pnpm --filter @infinite-world/api typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12"
   }
 }

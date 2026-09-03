@@ -1,4 +1,11 @@
-import { AnimatePresence, m, MotionConfig, type Transition, type Variant, type Variants } from 'motion/react';
+import {
+  AnimatePresence,
+  m,
+  MotionConfig,
+  type Transition,
+  type Variant,
+  type Variants,
+} from 'motion/react';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -72,7 +79,13 @@ export type DisclosureProps = {
   variant?: 'default' | 'outline';
 };
 
-function DisclosureRoot({ className, children }: { className?: string; children: React.ReactNode }) {
+function DisclosureRoot({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   const { open } = useDisclosure();
   return (
     <div className={className} data-state={open ? 'open' : 'closed'}>

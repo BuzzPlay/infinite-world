@@ -19,8 +19,12 @@ interface RunnerResponse {
 }
 
 export class LocalRunnerGenerator {
-  async generate(input: GenerationInput, prompt: { prompt: string; contextSummary: string; selectedComment: string | null }): Promise<GeneratedScene> {
-    if (!config.localGenerator) throw new Error('configure INFINITE_WORLD_LOCAL_GENERATOR for local generation');
+  async generate(
+    input: GenerationInput,
+    prompt: { prompt: string; contextSummary: string; selectedComment: string | null },
+  ): Promise<GeneratedScene> {
+    if (!config.localGenerator)
+      throw new Error('configure INFINITE_WORLD_LOCAL_GENERATOR for local generation');
     const payload = {
       model_type: input.generation.model,
       sequence: input.run.scenes.length + 1,
@@ -46,12 +50,18 @@ export class LocalRunnerGenerator {
     if (response.error?.trim()) throw new Error(response.error);
     const mime = response.frame_mime_type?.trim() || 'image/jpeg';
     const frame = response.frames?.at(-1);
-    const previewUrl = response.preview_url || response.video_url || response.image_url
-      || dataUrl(response.video_base64, 'video/mp4')
-      || dataUrl(response.image_base64, mime)
-      || dataUrl(frame, mime);
+    const previewUrl =
+      response.preview_url ||
+      response.video_url ||
+      response.image_url ||
+      dataUrl(response.video_base64, 'video/mp4') ||
+      dataUrl(response.image_base64, mime) ||
+      dataUrl(frame, mime);
     if (!previewUrl) throw new Error('local generator returned no preview media');
-    const mediaType = response.media_type?.startsWith('video') || response.video_url || response.video_base64 ? 'video' : 'image';
+    const mediaType =
+      response.media_type?.startsWith('video') || response.video_url || response.video_base64
+        ? 'video'
+        : 'image';
     return {
       prompt: response.prompt?.trim() || prompt.prompt,
       contextSummary: response.context_summary?.trim() || prompt.contextSummary,
@@ -59,7 +69,8 @@ export class LocalRunnerGenerator {
       previewUrl,
       mediaType,
       continuityImageUrl: frame ? dataUrl(frame, mime) : null,
-      generationLatencyMs: response.generation_latency_ms || Math.max(1, Math.round(performance.now() - started)),
+      generationLatencyMs:
+        response.generation_latency_ms || Math.max(1, Math.round(performance.now() - started)),
     };
   }
 }
@@ -81,10 +92,13 @@ async function runNdjson(command: string, payload: unknown): Promise<RunnerRespo
       clearTimeout(timeout);
       callback();
     };
-    const timeout = setTimeout(() => {
-      child.kill('SIGTERM');
-      finish(() => reject(new Error('local generation timed out after 30 minutes')));
-    }, 30 * 60 * 1_000);
+    const timeout = setTimeout(
+      () => {
+        child.kill('SIGTERM');
+        finish(() => reject(new Error('local generation timed out after 30 minutes')));
+      },
+      30 * 60 * 1_000,
+    );
     child.stdout.on('data', (chunk: Buffer) => {
       output += chunk.toString();
       const line = output.split('\n')[0]?.trim();
@@ -100,7 +114,15 @@ async function runNdjson(command: string, payload: unknown): Promise<RunnerRespo
     child.on('exit', (code) => {
       if (settled) return;
       const detail = stderr.trim();
-      finish(() => reject(new Error(detail ? `local generator exited with ${code}: ${detail}` : `local generator exited with ${code ?? 'signal'}`)));
+      finish(() =>
+        reject(
+          new Error(
+            detail
+              ? `local generator exited with ${code}: ${detail}`
+              : `local generator exited with ${code ?? 'signal'}`,
+          ),
+        ),
+      );
     });
   });
   child.stdin.write(`${JSON.stringify(payload)}\n`);

@@ -46,7 +46,7 @@ function CheckboxGroup({
 
   const toggle = React.useCallback(
     (itemValue: string, checked: boolean) => {
-      const current = isControlled ? value! : internalValue;
+      const current = isControlled ? (value ?? []) : internalValue;
       const next = checked
         ? current.includes(itemValue)
           ? current

@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { X } from 'lucide-react';
-import type { GenerationSettings, RunSnapshot, RunState, SceneSnapshot, WorldConfig } from '@infinite-world/api-contract';
+import type {
+  GenerationSettings,
+  RunSnapshot,
+  RunState,
+  SceneSnapshot,
+  WorldConfig,
+} from '@infinite-world/api-contract';
 
 import { Button } from '../ui/button';
 import { Alert, AlertActions, AlertDescription } from '../ui/alert';
@@ -66,17 +72,48 @@ export function WorldDashboard({
   }, [currentScene?.id]);
 
   return (
-    <Tabs defaultValue="preview" className="relative h-full min-h-0 overflow-hidden bg-background text-foreground" key={run?.worldId ?? 'world-dashboard'}>
-      <SidebarTrigger className="pointer-events-auto absolute left-3 top-3 z-30 md:hidden" title="Open sidebar" aria-label="Open sidebar" />
+    <Tabs
+      defaultValue="preview"
+      className="relative h-full min-h-0 overflow-hidden bg-background text-foreground"
+      key={run?.worldId ?? 'world-dashboard'}
+    >
+      <SidebarTrigger
+        className="pointer-events-auto absolute left-3 top-3 z-30 md:hidden"
+        title="Open sidebar"
+        aria-label="Open sidebar"
+      />
       <SidebarToggle placement="floating" />
-      <div className={cn('pointer-events-none absolute top-3 z-30', sidebarState === 'collapsed' ? 'left-14' : 'left-4')}>
+      <div
+        className={cn(
+          'pointer-events-none absolute top-3 z-30',
+          sidebarState === 'collapsed' ? 'left-14' : 'left-4',
+        )}
+      >
         <TabsList className="pointer-events-auto">
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="live">Live</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
       </div>
-      {notice ? <Alert variant="warning" className="pointer-events-auto absolute left-3 right-3 top-20 z-30 mx-auto max-w-xl shadow-sm backdrop-blur-md sm:left-1/2 sm:right-auto sm:w-[min(36rem,calc(100%-3rem))] sm:-translate-x-1/2"><AlertDescription>{notice}</AlertDescription><AlertActions><Button size="icon-sm" variant="ghost" className="text-amber-800 hover:bg-amber-500/10 hover:text-amber-900" onClick={onDismissNotice} aria-label="Dismiss notice"><X size={14} aria-hidden="true" /></Button></AlertActions></Alert> : null}
+      {notice ? (
+        <Alert
+          variant="warning"
+          className="pointer-events-auto absolute left-3 right-3 top-20 z-30 mx-auto max-w-xl shadow-sm backdrop-blur-md sm:left-1/2 sm:right-auto sm:w-[min(36rem,calc(100%-3rem))] sm:-translate-x-1/2"
+        >
+          <AlertDescription>{notice}</AlertDescription>
+          <AlertActions>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="text-amber-800 hover:bg-amber-500/10 hover:text-amber-900"
+              onClick={onDismissNotice}
+              aria-label="Dismiss notice"
+            >
+              <X size={14} aria-hidden="true" />
+            </Button>
+          </AlertActions>
+        </Alert>
+      ) : null}
 
       <TabsContent value="preview" className="absolute inset-0 m-0">
         <PreviewCanvas
@@ -89,7 +126,10 @@ export function WorldDashboard({
           loading={loading}
           previewRef={previewRef}
           selectedOptionId={selectedOptionId}
-          onOptionSelect={(optionId) => { setSelectedOptionId(optionId); onOptionSelect(optionId); }}
+          onOptionSelect={(optionId) => {
+            setSelectedOptionId(optionId);
+            onOptionSelect(optionId);
+          }}
           onAction={onAction}
         />
       </TabsContent>
@@ -108,12 +148,18 @@ export function WorldDashboard({
           twitchStreamKeyConfigured={twitchStreamKeyConfigured}
           previewRef={livePreviewRef}
           selectedOptionId={selectedOptionId}
-          onOptionSelect={(optionId) => { setSelectedOptionId(optionId); onOptionSelect(optionId); }}
+          onOptionSelect={(optionId) => {
+            setSelectedOptionId(optionId);
+            onOptionSelect(optionId);
+          }}
           onAction={onAction}
         />
       </TabsContent>
-      <TabsContent value="settings" className="absolute inset-0 m-0 overflow-y-auto bg-background pt-24 text-foreground sm:pt-20">
-          <div className="mx-auto min-h-full w-full max-w-4xl p-4 pb-12 sm:p-8">
+      <TabsContent
+        value="settings"
+        className="absolute inset-0 m-0 overflow-y-auto bg-background pt-24 text-foreground sm:pt-20"
+      >
+        <div className="mx-auto min-h-full w-full max-w-4xl p-4 pb-12 sm:p-8">
           <RunMetrics run={run} />
           <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
             <SceneHistory

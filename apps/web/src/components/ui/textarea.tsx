@@ -9,7 +9,12 @@ export interface UseAutosizeTextAreaProps {
   triggerAutoSize: string;
 }
 
-export function useAutosizeTextArea({ textAreaRef, triggerAutoSize, minHeight = 0, maxHeight = Number.MAX_SAFE_INTEGER }: UseAutosizeTextAreaProps) {
+export function useAutosizeTextArea({
+  textAreaRef,
+  triggerAutoSize,
+  minHeight = 0,
+  maxHeight = Number.MAX_SAFE_INTEGER,
+}: UseAutosizeTextAreaProps) {
   React.useLayoutEffect(() => {
     const element = textAreaRef.current;
     if (!element) return;
@@ -37,7 +42,19 @@ export type AutosizeTextAreaProps = React.TextareaHTMLAttributes<HTMLTextAreaEle
 };
 
 export const Textarea = React.forwardRef<AutosizeTextAreaRef, AutosizeTextAreaProps>(
-  ({ maxHeight = Number.MAX_SAFE_INTEGER, minHeight = 52, className, onChange, value, defaultValue, variant = 'default', ...props }, ref) => {
+  (
+    {
+      maxHeight = Number.MAX_SAFE_INTEGER,
+      minHeight = 52,
+      className,
+      onChange,
+      value,
+      defaultValue,
+      variant = 'default',
+      ...props
+    },
+    ref,
+  ) => {
     const textAreaRef = React.useRef<HTMLTextAreaElement | null>(null);
     const initialValue = String(value ?? defaultValue ?? '');
     const [triggerAutoSize, setTriggerAutoSize] = React.useState(initialValue);
@@ -48,12 +65,16 @@ export const Textarea = React.forwardRef<AutosizeTextAreaRef, AutosizeTextAreaPr
 
     useAutosizeTextArea({ textAreaRef, triggerAutoSize, maxHeight, minHeight });
 
-    React.useImperativeHandle(ref, () => ({
-      textArea: textAreaRef.current as HTMLTextAreaElement,
-      maxHeight,
-      minHeight,
-      focus: () => textAreaRef.current?.focus(),
-    }), [maxHeight, minHeight]);
+    React.useImperativeHandle(
+      ref,
+      () => ({
+        textArea: textAreaRef.current as HTMLTextAreaElement,
+        maxHeight,
+        minHeight,
+        focus: () => textAreaRef.current?.focus(),
+      }),
+      [maxHeight, minHeight],
+    );
 
     return (
       <textarea

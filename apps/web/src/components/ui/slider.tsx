@@ -8,13 +8,30 @@ export type SliderProps = React.ComponentProps<typeof SliderPrimitive.Root> & {
   formatValue?: (value: number, index: number) => string;
 };
 
-export function Slider({ className, defaultValue, value, min = 0, max = 100, onValueChange, thumbLabel, formatValue, 'aria-label': ariaLabel, 'aria-labelledby': ariaLabelledBy, ...props }: SliderProps) {
-  const [uncontrolledValues, setUncontrolledValues] = React.useState<number[]>(() => Array.isArray(defaultValue) ? defaultValue : [min]);
+export function Slider({
+  className,
+  defaultValue,
+  value,
+  min = 0,
+  max = 100,
+  onValueChange,
+  thumbLabel,
+  formatValue,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  ...props
+}: SliderProps) {
+  const [uncontrolledValues, setUncontrolledValues] = React.useState<number[]>(() =>
+    Array.isArray(defaultValue) ? defaultValue : [min],
+  );
   const values = Array.isArray(value) ? value : uncontrolledValues;
-  const handleValueChange = React.useCallback((next: number[]) => {
-    if (value === undefined) setUncontrolledValues(next);
-    onValueChange?.(next);
-  }, [onValueChange, value]);
+  const handleValueChange = React.useCallback(
+    (next: number[]) => {
+      if (value === undefined) setUncontrolledValues(next);
+      onValueChange?.(next);
+    },
+    [onValueChange, value],
+  );
   const labelFor = (index: number) => {
     if (Array.isArray(thumbLabel)) return thumbLabel[index];
     if (!thumbLabel && !ariaLabel) return undefined;

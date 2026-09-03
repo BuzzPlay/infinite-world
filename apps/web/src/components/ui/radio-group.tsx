@@ -3,8 +3,17 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-function RadioGroup({ className, ...props }: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
-  return <RadioGroupPrimitive.Root data-slot="radio-group" className={cn('grid gap-1', className)} {...props} />;
+function RadioGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
+  return (
+    <RadioGroupPrimitive.Root
+      data-slot="radio-group"
+      className={cn('grid gap-1', className)}
+      {...props}
+    />
+  );
 }
 
 type RadioGroupItemProps = React.ComponentProps<typeof RadioGroupPrimitive.Item> & {
@@ -24,7 +33,8 @@ function RadioGroupItem({
   variant = 'default',
   ...props
 }: RadioGroupItemProps) {
-  const itemId = id ?? React.useId();
+  const generatedId = React.useId();
+  const itemId = id ?? generatedId;
   const hasCaption = label != null || description != null;
   const control = (
     <RadioGroupPrimitive.Item
@@ -57,8 +67,14 @@ function RadioGroupItem({
     >
       {control}
       <span className="flex min-w-0 flex-1 flex-col justify-center">
-        {label != null ? <span className="text-sm text-foreground peer-data-[state=checked]:font-medium">{label}</span> : null}
-        {description != null ? <span className="text-[13px] text-muted-foreground">{description}</span> : null}
+        {label != null ? (
+          <span className="text-sm text-foreground peer-data-[state=checked]:font-medium">
+            {label}
+          </span>
+        ) : null}
+        {description != null ? (
+          <span className="text-[13px] text-muted-foreground">{description}</span>
+        ) : null}
       </span>
     </label>
   );

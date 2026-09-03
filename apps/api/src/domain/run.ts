@@ -77,7 +77,12 @@ export function outputSnapshot(output: LiveOutputSettings | null | undefined) {
 }
 
 export function publicRun(run: StoredRun): RunSnapshot {
-  const { outputSettings: _outputSettings, pendingDirection: _pendingDirection, continuityImageUrl: _continuityImageUrl, ...snapshot } = run;
+  const {
+    outputSettings: _outputSettings,
+    pendingDirection: _pendingDirection,
+    continuityImageUrl: _continuityImageUrl,
+    ...snapshot
+  } = run;
   return structuredClone(snapshot);
 }
 
@@ -147,7 +152,10 @@ export function appendScene(run: StoredRun, scene: GeneratedScene, generation: G
 
 export function touchMetrics(run: StoredRun) {
   if (run.startedAt && isActive(run)) {
-    run.metrics.uptimeSeconds = Math.max(0, Math.floor((Date.now() - Date.parse(run.startedAt)) / 1000));
+    run.metrics.uptimeSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - Date.parse(run.startedAt)) / 1000),
+    );
   }
   const timestamp = nowIso();
   const previous = run.metrics.history.at(-1);

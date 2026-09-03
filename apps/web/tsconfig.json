@@ -1,15 +1,9 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": false,
-    "skipLibCheck": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
     "esModuleInterop": true,
-    "strict": true,
     "noEmit": true,
     "module": "esnext",
     "moduleResolution": "Bundler",
@@ -17,7 +11,6 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
@@ -34,7 +27,5 @@
     "**/*.tsx",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

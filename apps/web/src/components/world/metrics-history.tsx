@@ -8,7 +8,10 @@ export function MetricsHistory({ history }: { history: RunMetricsSample[] }) {
   const latest = samples[samples.length - 1];
 
   return (
-    <section className="mt-4 rounded-lg border border-border bg-card px-4 py-3" aria-label="Metrics history">
+    <section
+      className="mt-4 rounded-lg border border-border bg-card px-4 py-3"
+      aria-label="Metrics history"
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-xs font-medium text-foreground">Recent activity</h3>
@@ -18,7 +21,11 @@ export function MetricsHistory({ history }: { history: RunMetricsSample[] }) {
           {latest.generationLatencyMs} ms latest
         </span>
       </div>
-      <div className="mt-3 flex h-16 items-end gap-1" role="img" aria-label="Generation latency over recent samples">
+      <div
+        className="mt-3 flex h-16 items-end gap-1"
+        role="img"
+        aria-label="Generation latency over recent samples"
+      >
         {samples.map((sample) => (
           <span
             className="min-w-0 flex-1 rounded-t-sm bg-primary/65 transition-[height]"

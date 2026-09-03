@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
-import { EventHub, writeSse } from '../events.js';
+import { type EventHub, writeSse } from '../events.js';
 import type { RuntimeState } from '../runtime/state.js';
 
 export function registerEventRoutes(app: FastifyInstance, state: RuntimeState, events: EventHub) {

@@ -463,10 +463,4 @@ export {
   tabsTriggerTextVariants,
 };
 
-export type {
-  TabsListType,
-  TabsSize,
-  TabsTriggerSize,
-  TabsTriggerVariant,
-  TabsUnderlineSize,
-};
+export type { TabsListType, TabsSize, TabsTriggerSize, TabsTriggerVariant, TabsUnderlineSize };

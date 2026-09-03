@@ -30,11 +30,11 @@ export class RuntimeState {
   }
 
   get activeWorld() {
-    return this.state.activeWorldId ? this.worlds.get(this.state.activeWorldId) ?? null : null;
+    return this.state.activeWorldId ? (this.worlds.get(this.state.activeWorldId) ?? null) : null;
   }
 
   get activeRun() {
-    return this.activeWorld ? this.runs.get(this.activeWorld.id) ?? null : null;
+    return this.activeWorld ? (this.runs.get(this.activeWorld.id) ?? null) : null;
   }
 
   listWorldSnapshots() {

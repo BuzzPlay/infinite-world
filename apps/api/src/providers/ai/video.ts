@@ -19,12 +19,17 @@ export class VideoGenerator {
     return this.generateHosted(input, settings, prompt);
   }
 
-  private async generateHosted(input: GenerationInput, settings: ProviderState, prompt: { prompt: string; contextSummary: string; selectedComment: string | null }) {
+  private async generateHosted(
+    input: GenerationInput,
+    settings: ProviderState,
+    prompt: { prompt: string; contextSummary: string; selectedComment: string | null },
+  ) {
     if (!settings.falApiKey) throw new Error('configure a provider key before hosted generation');
     fal.config({ credentials: settings.falApiKey });
-    const model = input.generation.model === 'fal-ltx-2.3' || input.generation.model === 'ltx-2.3'
-      ? 'fal-ai/ltx-2.3/image-to-video/fast'
-      : 'fal-ai/ltx-video';
+    const model =
+      input.generation.model === 'fal-ltx-2.3' || input.generation.model === 'ltx-2.3'
+        ? 'fal-ai/ltx-2.3/image-to-video/fast'
+        : 'fal-ai/ltx-video';
     const started = performance.now();
     const result = await fal.subscribe(model, {
       input: {
@@ -43,7 +48,8 @@ export class VideoGenerator {
         aspect_ratio: input.generation.aspectRatio ?? undefined,
       } as never,
     });
-    const output = (result as { data?: { video?: { url?: string } }; video?: { url?: string } }).data ?? result;
+    const output =
+      (result as { data?: { video?: { url?: string } }; video?: { url?: string } }).data ?? result;
     const previewUrl = (output as { video?: { url?: string } }).video?.url;
     if (!previewUrl) throw new Error('video provider returned no preview URL');
     return {
@@ -56,7 +62,6 @@ export class VideoGenerator {
       generationLatencyMs: Math.max(1, Math.round(performance.now() - started)),
     };
   }
-
 }
 
 function isLocalModel(model: string) {
