@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import {
+  modelsForCapability,
+  type ModelCapability,
+} from '@infinite-world/api-contract/model-catalog';
 import type { GenerationMode, GenerationSettings, WorldConfig } from '@infinite-world/api-contract';
-import { ImagePlus, Plus, Trash2, Upload } from 'lucide-react';
+import { ImagePlus, Upload } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '../ui/field';
@@ -10,24 +14,45 @@ import { SettingsRow, SettingsRowGroup } from '../ui/settings-row';
 import { Slider } from '../ui/slider';
 import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface WorldSetupFormProps {
   draft: WorldConfig;
   onNameChange: (value: string) => void;
   onPromptChange: (value: string) => void;
   onGenerationChange: (changes: Partial<GenerationSettings>) => void;
+  visionModelOptions?: GenerationModelOption[];
+  videoModelOptions?: GenerationModelOption[];
   className?: string;
 }
 
-export const generationModelOptions = [
-  { value: 'demo-continuous', label: 'Demo generator' },
-  { value: 'fal-ltx-video', label: 'FAL LTX Video' },
-  { value: 'fal-ltx-2.3', label: 'FAL LTX 2.3' },
-  { value: 'ltx-2.3', label: 'LTX 2.3 · hosted' },
-  { value: 'ltxv1', label: 'Local LTX v1' },
-  { value: 'ltx-2.3-local', label: 'Local LTX 2.3' },
-  { value: 'ltx-2.3-condition', label: 'Local LTX 2.3 · references' },
-] as const;
+export interface GenerationModelOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export function modelOptionsFor(
+  capability: ModelCapability,
+  configured: boolean,
+): GenerationModelOption[] {
+  if (!configured) return [{ value: 'none', label: 'none' }];
+  const models = modelsForCapability(capability)
+    .filter((model) => model.id !== 'none')
+    .map((model) => ({ value: model.id, label: model.id }));
+  return [{ value: 'none', label: 'none' }, ...models];
+}
+
+export const hostedGenerationModelOptions = modelOptionsFor('video', true);
+export const generationModelOptions = hostedGenerationModelOptions;
+
+export function generationModelOptionsFor(falApiKeyConfigured: boolean) {
+  return modelOptionsFor('video', falApiKeyConfigured);
+}
+
+export function visionModelOptionsFor(googleApiKeyConfigured: boolean) {
+  return modelOptionsFor('vision', googleApiKeyConfigured);
+}
 
 const progressionModes: readonly GenerationMode[] = [
   'regular',
@@ -36,14 +61,6 @@ const progressionModes: readonly GenerationMode[] = [
   'visual',
   'chaotic',
 ];
-const canvasOptions = [
-  ['512x384', '4:3 · 512 x 384'],
-  ['512x288', '16:9 · 512 x 288'],
-  ['640x480', '4:3 · 640 x 480'],
-  ['1280x720', '16:9 · 1280 x 720'],
-  ['1024x1024', '1:1 · 1024 x 1024'],
-  ['720x1280', '9:16 · 720 x 1280'],
-] as const;
 const resolutionOptions = [
   ['auto', 'Auto'],
   ['1080p', '1080p'],
@@ -56,7 +73,6 @@ const aspectRatioOptions = [
   ['9:16', '9:16'],
 ] as const;
 const hostedDurations = [6, 8, 10, 12, 14, 16, 18, 20] as const;
-
 function isGenerationMode(value: string): value is GenerationMode {
   return progressionModes.includes(value as GenerationMode);
 }
@@ -65,26 +81,39 @@ function readImage(
   file: File,
   onReady: (value: string) => void,
   onError: (message: string) => void,
+  messages: ImageReadMessages = defaultImageReadMessages,
 ) {
   if (!file.type.startsWith('image/')) {
-    onError('Choose an image file.');
+    onError(messages.invalid);
     return;
   }
   if (file.size > 10 * 1024 * 1024) {
-    onError('Images must be smaller than 10 MB.');
+    onError(messages.tooLarge);
     return;
   }
   const reader = new FileReader();
   reader.onload = () => {
     if (typeof reader.result === 'string') onReady(reader.result);
-    else onError('The image could not be read.');
+    else onError(messages.failed);
   };
-  reader.onerror = () => onError('The image could not be read.');
+  reader.onerror = () => onError(messages.failed);
   reader.readAsDataURL(file);
 }
 
+type ImageReadMessages = {
+  invalid: string;
+  tooLarge: string;
+  failed: string;
+};
+
+const defaultImageReadMessages: ImageReadMessages = {
+  invalid: 'Choose an image file.',
+  tooLarge: 'Images must be smaller than 10 MB.',
+  failed: 'The image could not be read.',
+};
+
 export function modelRequiresInitialImage(model: string) {
-  return ['ltxv1', 'ltx-2.3-local', 'ltx-2.3-condition', 'fal-ltx-2.3', 'ltx-2.3'].includes(model);
+  return model === 'fal-ai/ltx-2.3/image-to-video/fast';
 }
 
 export function WorldSetupForm({
@@ -92,31 +121,34 @@ export function WorldSetupForm({
   onNameChange,
   onPromptChange,
   onGenerationChange,
+  visionModelOptions = modelOptionsFor('vision', true),
+  videoModelOptions = generationModelOptions,
   className,
 }: WorldSetupFormProps) {
+  const { t } = useTranslation();
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const referenceInputRef = useRef<HTMLInputElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const generation = draft.generation;
-  const isHostedLtxVideo = generation.model === 'fal-ltx-video';
-  const isHostedLtx23 = generation.model === 'fal-ltx-2.3' || generation.model === 'ltx-2.3';
-  const isLocalModel = ['ltxv1', 'ltx-2.3-local', 'ltx-2.3-condition'].includes(generation.model);
-  const supportsCanvas = isLocalModel;
-  const supportsFrameRate = isLocalModel || isHostedLtx23;
+  const isHostedLtxVideo = generation.model === 'fal-ai/ltx-video';
+  const isHostedLtx23 = generation.model === 'fal-ai/ltx-2.3/image-to-video/fast';
+  const supportsFrameRate = isHostedLtx23;
   const supportsDuration = isHostedLtx23;
-  const supportsNumFrames = isLocalModel;
-  const supportsGuidance = isLocalModel || isHostedLtxVideo;
-  const supportsStrength = isLocalModel;
-  const supportsSeed = isLocalModel || isHostedLtxVideo;
+  const supportsGuidance = isHostedLtxVideo;
+  const supportsSeed = isHostedLtxVideo;
   const supportsNegativePrompt = !isHostedLtx23;
-  const supportsTimesteps = isLocalModel || isHostedLtxVideo;
-  const supportsAudio = isLocalModel || isHostedLtx23;
-  const supportsLocalControls =
-    generation.model === 'ltx-2.3-local' || generation.model === 'ltx-2.3-condition';
-  const isConditionModel = generation.model === 'ltx-2.3-condition';
+  const supportsTimesteps = isHostedLtxVideo;
+  const supportsAudio = isHostedLtx23;
   const requiresInitialImage = modelRequiresInitialImage(generation.model);
   const hostedResolution =
     isHostedLtx23 && generation.durationSeconds > 10 ? '1080p' : (generation.resolution ?? 'auto');
+  const selectedVisionModel = visionModelOptions.some(
+    (option) => option.value === generation.visionModel,
+  )
+    ? generation.visionModel
+    : 'none';
+  const selectedVideoModel = videoModelOptions.some((option) => option.value === generation.model)
+    ? generation.model
+    : 'none';
 
   useEffect(() => {
     if (!isHostedLtx23 || generation.durationSeconds <= 10) return;
@@ -142,7 +174,7 @@ export function WorldSetupForm({
     onGenerationChange({ initialImageUrl: value || null });
   };
   const selectModel = (model: string) => {
-    if (model === 'fal-ltx-2.3' || model === 'ltx-2.3') {
+    if (model === 'fal-ai/ltx-2.3/image-to-video/fast') {
       const duration = hostedDurations.includes(
         generation.durationSeconds as (typeof hostedDurations)[number],
       )
@@ -164,69 +196,81 @@ export function WorldSetupForm({
     <div className={`px-4 py-4 sm:px-5 sm:py-5 ${className ?? ''}`}>
       <FieldGroup className="gap-4">
         <Field>
-          <FieldLabel htmlFor="world-name">Name</FieldLabel>
+          <FieldLabel htmlFor="world-name">{t('project.name')}</FieldLabel>
           <Input
             id="world-name"
             value={draft.name}
             onChange={(event) => onNameChange(event.target.value)}
-            placeholder="A name for this world"
+            placeholder={t('project.namePlaceholder')}
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="world-prompt">Initial prompt</FieldLabel>
+          <FieldLabel htmlFor="world-prompt">{t('project.initialPrompt')}</FieldLabel>
           <Textarea
             id="world-prompt"
             value={draft.prompt}
             onChange={(event) => onPromptChange(event.target.value)}
             rows={4}
-            placeholder="Describe the opening scene"
+            placeholder={t('project.promptPlaceholder')}
           />
         </Field>
       </FieldGroup>
 
       <SettingsRowGroup className="mt-5">
-        <SettingsRow label="Model" description="Generation provider" htmlFor="model">
-          <Select value={generation.model} onValueChange={selectModel}>
-            <SelectTrigger id="model" className="w-56 max-w-[55vw]" size="sm" aria-label="Model">
+        <SettingsRow
+          label={t('project.visionModel')}
+          description={t('project.visionProvider')}
+          htmlFor="vision-model"
+        >
+          <Select
+            value={selectedVisionModel}
+            onValueChange={(visionModel) => onGenerationChange({ visionModel })}
+          >
+            <SelectTrigger
+              id="vision-model"
+              className="w-56 max-w-[55vw]"
+              size="sm"
+              aria-label={t('project.visionModel')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {generationModelOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+              {visionModelOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+                  <span className="font-mono text-xs">{option.label}</span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </SettingsRow>
-        {supportsCanvas ? (
-          <SettingsRow label="Canvas" description="Generation and output size" htmlFor="format">
-            <Select
-              value={`${generation.width}x${generation.height}`}
-              onValueChange={(format) => {
-                const [width, height] = format.split('x').map(Number);
-                onGenerationChange({ width, height });
-              }}
+        <SettingsRow
+          label={t('project.videoModel')}
+          description={t('project.videoProvider')}
+          htmlFor="video-model"
+        >
+          <Select value={selectedVideoModel} onValueChange={selectModel}>
+            <SelectTrigger
+              id="video-model"
+              className="w-56 max-w-[55vw]"
+              size="sm"
+              aria-label={t('project.videoModel')}
             >
-              <SelectTrigger
-                id="format"
-                className="w-44 max-w-[55vw]"
-                size="sm"
-                aria-label="Canvas"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {canvasOptions.map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingsRow>
-        ) : null}
-        <SettingsRow label="Target FPS" description="Output transport rate" htmlFor="target-fps">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {videoModelOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+                  <span className="font-mono text-xs">{option.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+        <SettingsRow
+          label={t('project.targetFps')}
+          description={t('project.outputTransportRate')}
+          htmlFor="target-fps"
+        >
           <NumberInput
             id="target-fps"
             value={generation.targetFps}
@@ -239,11 +283,11 @@ export function WorldSetupForm({
         </SettingsRow>
         {supportsFrameRate ? (
           <SettingsRow
-            label="Frame rate"
+            label={t('project.frameRate')}
             description={
               isHostedLtx23 && generation.durationSeconds > 10
-                ? 'Required for clips over 10 seconds'
-                : 'Generation timing'
+                ? t('project.requiredLongClips')
+                : t('project.generationTiming')
             }
             htmlFor="frame-rate"
           >
@@ -259,7 +303,11 @@ export function WorldSetupForm({
           </SettingsRow>
         ) : null}
         {supportsDuration ? (
-          <SettingsRow label="Duration" description="Supported hosted duration" htmlFor="duration">
+          <SettingsRow
+            label={t('project.duration')}
+            description={t('project.hostedDuration')}
+            htmlFor="duration"
+          >
             <Select
               value={String(
                 hostedDurations.includes(
@@ -275,33 +323,26 @@ export function WorldSetupForm({
                 })
               }
             >
-              <SelectTrigger id="duration" className="w-28" size="sm" aria-label="Duration">
+              <SelectTrigger
+                id="duration"
+                className="w-28"
+                size="sm"
+                aria-label={t('project.duration')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {hostedDurations.map((duration) => (
                   <SelectItem key={duration} value={String(duration)}>
-                    {duration} sec
+                    {duration} {t('project.seconds')}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </SettingsRow>
         ) : null}
-        {supportsNumFrames ? (
-          <SettingsRow label="Frames" description="Frame-based models" htmlFor="num-frames">
-            <NumberInput
-              id="num-frames"
-              value={generation.numFrames}
-              min={9}
-              max={1001}
-              step={8}
-              onChange={(event) => updateNumber('numFrames', event)}
-            />
-          </SettingsRow>
-        ) : null}
         {supportsGuidance ? (
-          <SettingsRow label="Guidance" description="Prompt influence">
+          <SettingsRow label={t('project.guidance')} description={t('project.promptInfluence')}>
             <RangeValue
               value={generation.guidanceScale}
               min={0}
@@ -311,19 +352,12 @@ export function WorldSetupForm({
             />
           </SettingsRow>
         ) : null}
-        {supportsStrength ? (
-          <SettingsRow label="Image strength" description="Initial image influence">
-            <RangeValue
-              value={generation.strength}
-              min={0}
-              max={2}
-              step={0.1}
-              onChange={(value) => onGenerationChange({ strength: value })}
-            />
-          </SettingsRow>
-        ) : null}
         {supportsSeed ? (
-          <SettingsRow label="Seed" description="Empty uses a new seed" htmlFor="seed">
+          <SettingsRow
+            label={t('project.seed')}
+            description={t('project.emptyNewSeed')}
+            htmlFor="seed"
+          >
             <Input
               className="w-28 px-2 text-right tabular-nums"
               id="seed"
@@ -333,7 +367,7 @@ export function WorldSetupForm({
               onChange={(event) =>
                 onGenerationChange({ seed: event.target.value ? Number(event.target.value) : null })
               }
-              placeholder="Random"
+              placeholder={t('project.random')}
             />
           </SettingsRow>
         ) : null}
@@ -342,19 +376,20 @@ export function WorldSetupForm({
       <FieldGroup className="mt-5 gap-4">
         {supportsNegativePrompt ? (
           <Field>
-            <FieldLabel htmlFor="negative-prompt">Negative prompt</FieldLabel>
+            <FieldLabel htmlFor="negative-prompt">{t('project.negativePrompt')}</FieldLabel>
             <Textarea
               id="negative-prompt"
               rows={2}
               value={generation.negativePrompt}
               onChange={(event) => onGenerationChange({ negativePrompt: event.target.value })}
-              placeholder="Optional things to avoid"
+              placeholder={t('project.optionalThingsToAvoid')}
             />
           </Field>
         ) : null}
         <Field>
           <FieldLabel htmlFor="initial-image">
-            Initial image{requiresInitialImage ? ' *' : ''}
+            {t('project.initialImage')}
+            {requiresInitialImage ? ' *' : ''}
           </FieldLabel>
           <input
             ref={imageInputRef}
@@ -363,7 +398,13 @@ export function WorldSetupForm({
             accept="image/*"
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (file) readImage(file, updateInitialImage, setImageError);
+              if (file) {
+                readImage(file, updateInitialImage, setImageError, {
+                  invalid: t('project.chooseImageFile'),
+                  tooLarge: t('project.imageTooLarge'),
+                  failed: t('project.imageReadFailed'),
+                });
+              }
               event.currentTarget.value = '';
             }}
           />
@@ -381,17 +422,17 @@ export function WorldSetupForm({
                 id="initial-image"
                 className="h-8 min-w-0 border-0 bg-transparent px-0 shadow-none focus:border-0 focus:ring-0"
                 required={requiresInitialImage}
-                aria-label="Initial image URL"
+                aria-label={t('project.initialImageUrl')}
                 value={generation.initialImageUrl ?? ''}
                 onChange={(event) => updateInitialImage(event.target.value)}
-                placeholder="Image URL or upload a file"
+                placeholder={t('project.imageUrlUpload')}
               />
               <Button
                 type="button"
                 size="icon-sm"
                 variant="ghost"
-                title="Upload initial image"
-                aria-label="Upload initial image"
+                title={t('project.uploadInitialImage')}
+                aria-label={t('project.uploadInitialImage')}
                 onClick={() => imageInputRef.current?.click()}
               >
                 <Upload size={15} aria-hidden="true" />
@@ -406,12 +447,12 @@ export function WorldSetupForm({
 
       <details className="mt-5 rounded-lg border border-border/70 px-3 open:pb-3">
         <summary className="cursor-pointer py-3 text-sm font-medium text-foreground">
-          Advanced generation
+          {t('project.advancedGeneration')}
         </summary>
         <SettingsRowGroup className="border-x-0 border-b-0">
           <SettingsRow
-            label="Progression"
-            description="How the next scene develops"
+            label={t('project.progression')}
+            description={t('project.nextSceneDevelops')}
             htmlFor="progression"
           >
             <Select
@@ -424,73 +465,32 @@ export function WorldSetupForm({
                 id="progression"
                 className="w-44 max-w-[55vw]"
                 size="sm"
-                aria-label="Progression"
+                aria-label={t('project.progression')}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {progressionModes.map((mode) => (
                   <SelectItem className="capitalize" key={mode} value={mode}>
-                    {mode}
+                    {t(`project.mode.${mode}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </SettingsRow>
-          {supportsLocalControls ? (
-            <SettingsRow label="Noise" description="Variation between scenes">
-              <RangeValue
-                value={generation.noiseScale}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={(value) => onGenerationChange({ noiseScale: value })}
-              />
-            </SettingsRow>
-          ) : null}
-          {supportsLocalControls ? (
-            <SettingsRow label="STG" description="Motion structure guidance">
-              <RangeValue
-                value={generation.stgScale}
-                min={0}
-                max={10}
-                step={0.1}
-                onChange={(value) => onGenerationChange({ stgScale: value })}
-              />
-            </SettingsRow>
-          ) : null}
-          {supportsLocalControls ? (
-            <SettingsRow
-              label="STG blocks"
-              description="Comma-separated transformer blocks"
-              htmlFor="stg-blocks"
-            >
-              <Input
-                id="stg-blocks"
-                className="w-44"
-                value={generation.spatioTemporalGuidanceBlocks?.join(', ') ?? ''}
-                onChange={(event) =>
-                  onGenerationChange({
-                    spatioTemporalGuidanceBlocks: parseList(event.target.value),
-                  })
-                }
-                placeholder="e.g. 0, 1, 2"
-              />
-            </SettingsRow>
-          ) : null}
           {supportsAudio ? (
-            <SettingsRow label="Audio" description="Include audio when supported">
+            <SettingsRow label={t('project.audio')} description={t('project.includeAudio')}>
               <Switch
                 checked={generation.enableAudio}
                 onCheckedChange={(enableAudio) => onGenerationChange({ enableAudio })}
-                aria-label="Enable audio"
+                aria-label={t('project.enableAudio')}
               />
             </SettingsRow>
           ) : null}
           {supportsTimesteps ? (
             <SettingsRow
-              label="Timesteps"
-              description="Comma-separated diffusion schedule"
+              label={t('project.timesteps')}
+              description={t('project.commaDiffusionSchedule')}
               htmlFor="timesteps"
             >
               <Input
@@ -505,11 +505,11 @@ export function WorldSetupForm({
           ) : null}
           {isHostedLtx23 ? (
             <SettingsRow
-              label="Resolution"
+              label={t('project.resolution')}
               description={
                 generation.durationSeconds > 10
-                  ? '1080p is required above 10 seconds'
-                  : 'Hosted model preset'
+                  ? t('project.required1080p')
+                  : t('project.hostedModelPreset')
               }
               htmlFor="resolution"
             >
@@ -522,7 +522,12 @@ export function WorldSetupForm({
                   })
                 }
               >
-                <SelectTrigger id="resolution" className="w-44" size="sm" aria-label="Resolution">
+                <SelectTrigger
+                  id="resolution"
+                  className="w-44"
+                  size="sm"
+                  aria-label={t('project.resolution')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -530,7 +535,7 @@ export function WorldSetupForm({
                     .filter(([value]) => generation.durationSeconds <= 10 || value === '1080p')
                     .map(([value, label]) => (
                       <SelectItem key={value} value={value}>
-                        {label}
+                        {value === 'auto' ? t('project.auto') : label}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -539,8 +544,8 @@ export function WorldSetupForm({
           ) : null}
           {isHostedLtx23 ? (
             <SettingsRow
-              label="Aspect ratio"
-              description="Hosted model framing"
+              label={t('project.aspectRatio')}
+              description={t('project.hostedModelFraming')}
               htmlFor="aspect-ratio"
             >
               <Select
@@ -553,7 +558,7 @@ export function WorldSetupForm({
                   id="aspect-ratio"
                   className="w-44"
                   size="sm"
-                  aria-label="Aspect ratio"
+                  aria-label={t('project.aspectRatio')}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -569,15 +574,6 @@ export function WorldSetupForm({
           ) : null}
         </SettingsRowGroup>
       </details>
-
-      {isConditionModel ? (
-        <CharacterReferences
-          references={generation.characterRefs}
-          onChange={(characterRefs) => onGenerationChange({ characterRefs })}
-          onError={setImageError}
-          inputRef={referenceInputRef}
-        />
-      ) : null}
     </div>
   );
 }
@@ -647,119 +643,6 @@ function RangeValue({
       </output>
     </div>
   );
-}
-
-function CharacterReferences({
-  references,
-  onChange,
-  onError,
-  inputRef,
-}: {
-  references: GenerationSettings['characterRefs'];
-  onChange: (references: GenerationSettings['characterRefs']) => void;
-  onError: (message: string) => void;
-  inputRef: RefObject<HTMLInputElement>;
-}) {
-  const addReference = (image: string) =>
-    onChange([...references, { image, label: '', strength: 0.4 }]);
-  return (
-    <section className="mt-5 grid gap-2" aria-labelledby="character-references-title">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 id="character-references-title" className="text-sm font-medium text-foreground">
-            Character references
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Up to four images for identity consistency.
-          </p>
-        </div>
-        <input
-          ref={inputRef}
-          className="hidden"
-          type="file"
-          accept="image/*"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) readImage(file, addReference, onError);
-            event.currentTarget.value = '';
-          }}
-        />
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={references.length >= 4}
-          onClick={() => inputRef.current?.click()}
-        >
-          <Plus size={14} aria-hidden="true" /> Add image
-        </Button>
-      </div>
-      {references.map((reference, index) => (
-        <div
-          key={reference.image}
-          className="grid gap-2 rounded-lg border border-border/70 p-2 sm:grid-cols-[5rem_1fr_auto]"
-        >
-          <img
-            src={reference.image}
-            alt=""
-            className="size-20 rounded-md object-cover sm:size-16"
-          />
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-            <Input
-              aria-label={`Character ${index + 1} label`}
-              value={reference.label}
-              onChange={(event) =>
-                onChange(
-                  references.map((item, itemIndex) =>
-                    itemIndex === index ? { ...item, label: event.target.value } : item,
-                  ),
-                )
-              }
-              placeholder="Character label"
-            />
-            <div className="flex items-center gap-2">
-              <Slider
-                aria-label={`Character ${index + 1} strength`}
-                min={0}
-                max={1}
-                step={0.05}
-                value={[reference.strength]}
-                onValueChange={([strength]) => {
-                  if (strength !== undefined)
-                    onChange(
-                      references.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, strength } : item,
-                      ),
-                    );
-                }}
-              />
-              <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
-                {reference.strength.toFixed(2)}
-              </span>
-            </div>
-          </div>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            title="Remove reference"
-            aria-label={`Remove character ${index + 1}`}
-            onClick={() => onChange(references.filter((_, itemIndex) => itemIndex !== index))}
-          >
-            <Trash2 size={15} aria-hidden="true" />
-          </Button>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function parseList(value: string): number[] | null {
-  const values = value
-    .split(',')
-    .map((item) => Number(item.trim()))
-    .filter(Number.isInteger);
-  return values.length ? values : null;
 }
 
 function parseFloatList(value: string): number[] {

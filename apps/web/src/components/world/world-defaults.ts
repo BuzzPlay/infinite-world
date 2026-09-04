@@ -15,7 +15,7 @@ export function stylePresetChanges(preset: StylePreset) {
 }
 
 export const defaultWorldConfig: WorldConfig = {
-  name: 'The First Valley',
-  prompt: 'A quiet valley where a river reflects a changing sky',
+  name: '',
+  prompt: '',
   generation: { ...DEFAULT_GENERATION },
 };
