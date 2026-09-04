@@ -35,6 +35,8 @@ interface ProviderModelGroup {
   models: readonly ModelDefinition[];
 }
 
+type ProviderDefinition = Omit<ProviderModelGroup, 'models'>;
+
 export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSettingsFormProps) {
   const { t } = useTranslation('settings');
   const [drafts, setDrafts] = useState<Record<ProviderKey, string>>({ google: '', fal: '' });
@@ -49,26 +51,34 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
   const [selectedProvider, setSelectedProvider] = useState<ProviderKey | null>(null);
   const disabled = loading || busy;
 
-  const providers: readonly ProviderModelGroup[] = [
-    {
-      key: 'google',
-      keyField: 'googleApiKey',
-      label: t('googleProvider'),
-      icon: Sparkles,
-      providerUrl: 'https://aistudio.google.com/apikey',
-      providerHost: 'aistudio.google.com',
-      models: modelsForCapability('vision').filter((model) => model.provider === 'google'),
-    },
-    {
-      key: 'fal',
-      keyField: 'falApiKey',
-      label: t('falProvider'),
-      icon: Film,
-      providerUrl: 'https://fal.ai/dashboard/keys',
-      providerHost: 'fal.ai',
-      models: modelsForCapability('video').filter((model) => model.provider === 'fal'),
-    },
-  ];
+  const googleProvider: ProviderDefinition = {
+    key: 'google',
+    keyField: 'googleApiKey',
+    label: t('googleProvider'),
+    icon: Sparkles,
+    providerUrl: 'https://aistudio.google.com/apikey',
+    providerHost: 'aistudio.google.com',
+  };
+  const falProvider: ProviderDefinition = {
+    key: 'fal',
+    keyField: 'falApiKey',
+    label: t('falProvider'),
+    icon: Film,
+    providerUrl: 'https://fal.ai/dashboard/keys',
+    providerHost: 'fal.ai',
+  };
+  const googleVisionProvider: ProviderModelGroup = {
+    ...googleProvider,
+    models: modelsForCapability('vision').filter((model) => model.provider === 'google'),
+  };
+  const falVisionProvider: ProviderModelGroup = {
+    ...falProvider,
+    models: modelsForCapability('vision').filter((model) => model.provider === 'fal'),
+  };
+  const falVideoProvider: ProviderModelGroup = {
+    ...falProvider,
+    models: modelsForCapability('video').filter((model) => model.provider === 'fal'),
+  };
 
   const saveProviderKey = async (provider: ProviderModelGroup, explicitValue?: string) => {
     const value = explicitValue ?? drafts[provider.key].trim();
@@ -90,7 +100,10 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
     }
   };
 
-  const handleProviderBlur = (provider: ProviderModelGroup, event: FocusEvent<HTMLDivElement>) => {
+  const handleProviderBlur = (
+    provider: ProviderModelGroup,
+    event: FocusEvent<HTMLFieldSetElement>,
+  ) => {
     if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
     void saveProviderKey(provider);
   };
@@ -107,81 +120,108 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
   };
 
   return (
-    <>
-      <Tabs defaultValue="vision" className="min-w-0 gap-4">
-        <TabsList
-          type="underline"
-          animate="none"
-          className="w-full justify-start overflow-x-auto"
-          aria-label={t('modelCapabilities')}
-        >
-          <TabsTrigger value="vision" size="md">
-            {t('vision')}
-          </TabsTrigger>
-          <TabsTrigger value="video" size="md">
-            {t('video')}
-          </TabsTrigger>
-        </TabsList>
+    <Tabs defaultValue="vision" className="min-w-0 gap-4">
+      <TabsList
+        type="underline"
+        animate="none"
+        className="w-full justify-start overflow-x-auto"
+        aria-label={t('modelCapabilities')}
+      >
+        <TabsTrigger value="vision" size="md">
+          {t('vision')}
+        </TabsTrigger>
+        <TabsTrigger value="video" size="md">
+          {t('video')}
+        </TabsTrigger>
+      </TabsList>
 
-        <TabsContent value="vision" className="grid min-w-0 gap-4">
-          {selectedProvider === 'google' ? (
-            <ProviderModelDetail
-              providerLabel={providers[0].label}
-              providerIcon={providers[0].icon}
-              providerUrl={providers[0].providerUrl}
-              providerHost={providers[0].providerHost}
-              models={providers[0].models}
-              onBack={() => setSelectedProvider(null)}
-              onConnect={() => setSelectedProvider(null)}
-            />
-          ) : (
-            <ProviderKeySection
-              instruction={t('providerKeyInstruction')}
-              provider={providers[0]}
-              configured={settings.googleApiKeyConfigured}
-              value={drafts.google}
-              status={statuses.google}
-              error={errors.google}
-              disabled={disabled}
-              onChange={(value) => changeProviderKey(providers[0], value)}
-              onClear={() => clearProviderKey(providers[0])}
-              onBlur={(event) => handleProviderBlur(providers[0], event)}
-              onOpenModels={() => setSelectedProvider('google')}
-              modelCountLabel={modelCountLabel(t, providers[0].models.length)}
-            />
-          )}
-        </TabsContent>
+      <TabsContent value="vision" className="grid min-w-0 gap-4">
+        {selectedProvider === 'google' ? (
+          <ProviderModelDetail
+            providerLabel={googleVisionProvider.label}
+            providerIcon={googleVisionProvider.icon}
+            providerUrl={googleVisionProvider.providerUrl}
+            providerHost={googleVisionProvider.providerHost}
+            models={googleVisionProvider.models}
+            onBack={() => setSelectedProvider(null)}
+            onConnect={() => setSelectedProvider(null)}
+          />
+        ) : selectedProvider === 'fal' ? (
+          <ProviderModelDetail
+            providerLabel={falVisionProvider.label}
+            providerIcon={falVisionProvider.icon}
+            providerUrl={falVisionProvider.providerUrl}
+            providerHost={falVisionProvider.providerHost}
+            models={falVisionProvider.models}
+            onBack={() => setSelectedProvider(null)}
+            onConnect={() => setSelectedProvider(null)}
+          />
+        ) : (
+          <div className="flex flex-col gap-4">
+            <p className="px-0.5 text-xs text-pretty text-muted-foreground">
+              {t('providerKeyInstruction')}
+            </p>
+            <div className="flex flex-col">
+              <ProviderRow
+                provider={googleVisionProvider}
+                configured={settings.googleApiKeyConfigured}
+                value={drafts.google}
+                status={statuses.google}
+                error={errors.google}
+                disabled={disabled}
+                onChange={(value) => changeProviderKey(googleVisionProvider, value)}
+                onClear={() => clearProviderKey(googleVisionProvider)}
+                onBlur={(event) => handleProviderBlur(googleVisionProvider, event)}
+                onOpenModels={() => setSelectedProvider('google')}
+                modelCountLabel={modelCountLabel(t, googleVisionProvider.models.length)}
+              />
+              <ProviderRow
+                provider={falVisionProvider}
+                configured={settings.falApiKeyConfigured}
+                value={drafts.fal}
+                status={statuses.fal}
+                error={errors.fal}
+                disabled={disabled}
+                onChange={(value) => changeProviderKey(falVisionProvider, value)}
+                onClear={() => clearProviderKey(falVisionProvider)}
+                onBlur={(event) => handleProviderBlur(falVisionProvider, event)}
+                onOpenModels={() => setSelectedProvider('fal')}
+                modelCountLabel={modelCountLabel(t, falVisionProvider.models.length)}
+              />
+            </div>
+          </div>
+        )}
+      </TabsContent>
 
-        <TabsContent value="video" className="grid min-w-0 gap-4">
-          {selectedProvider === 'fal' ? (
-            <ProviderModelDetail
-              providerLabel={providers[1].label}
-              providerIcon={providers[1].icon}
-              providerUrl={providers[1].providerUrl}
-              providerHost={providers[1].providerHost}
-              models={providers[1].models}
-              onBack={() => setSelectedProvider(null)}
-              onConnect={() => setSelectedProvider(null)}
-            />
-          ) : (
-            <ProviderKeySection
-              instruction={t('providerKeyInstruction')}
-              provider={providers[1]}
-              configured={settings.falApiKeyConfigured}
-              value={drafts.fal}
-              status={statuses.fal}
-              error={errors.fal}
-              disabled={disabled}
-              onChange={(value) => changeProviderKey(providers[1], value)}
-              onClear={() => clearProviderKey(providers[1])}
-              onBlur={(event) => handleProviderBlur(providers[1], event)}
-              onOpenModels={() => setSelectedProvider('fal')}
-              modelCountLabel={modelCountLabel(t, providers[1].models.length)}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
-    </>
+      <TabsContent value="video" className="grid min-w-0 gap-4">
+        {selectedProvider === 'fal' ? (
+          <ProviderModelDetail
+            providerLabel={falVideoProvider.label}
+            providerIcon={falVideoProvider.icon}
+            providerUrl={falVideoProvider.providerUrl}
+            providerHost={falVideoProvider.providerHost}
+            models={falVideoProvider.models}
+            onBack={() => setSelectedProvider(null)}
+            onConnect={() => setSelectedProvider(null)}
+          />
+        ) : (
+          <ProviderKeySection
+            instruction={t('providerKeyInstruction')}
+            provider={falVideoProvider}
+            configured={settings.falApiKeyConfigured}
+            value={drafts.fal}
+            status={statuses.fal}
+            error={errors.fal}
+            disabled={disabled}
+            onChange={(value) => changeProviderKey(falVideoProvider, value)}
+            onClear={() => clearProviderKey(falVideoProvider)}
+            onBlur={(event) => handleProviderBlur(falVideoProvider, event)}
+            onOpenModels={() => setSelectedProvider('fal')}
+            modelCountLabel={modelCountLabel(t, falVideoProvider.models.length)}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -206,7 +246,7 @@ function ProviderRow({
   disabled: boolean;
   onChange: (value: string) => void;
   onClear: () => void;
-  onBlur: (event: FocusEvent<HTMLDivElement>) => void;
+  onBlur: (event: FocusEvent<HTMLFieldSetElement>) => void;
   onOpenModels: () => void;
   modelCountLabel: string;
 }) {
@@ -272,7 +312,7 @@ function ProviderKeySection({
   disabled: boolean;
   onChange: (value: string) => void;
   onClear: () => void;
-  onBlur: (event: FocusEvent<HTMLDivElement>) => void;
+  onBlur: (event: FocusEvent<HTMLFieldSetElement>) => void;
   onOpenModels: () => void;
   modelCountLabel: string;
 }) {
@@ -304,7 +344,7 @@ function SecretInput({
   error: string | null;
   onChange: (value: string) => void;
   onClear: () => void;
-  onBlur: (event: FocusEvent<HTMLDivElement>) => void;
+  onBlur: (event: FocusEvent<HTMLFieldSetElement>) => void;
   placeholder: string;
   clearLabel: string;
   disabled: boolean;
@@ -313,7 +353,7 @@ function SecretInput({
   const statusLabel = saveStatusLabel(t, status);
 
   return (
-    <div className="w-full min-w-0" onBlur={onBlur}>
+    <fieldset className="m-0 w-full min-w-0 border-0 p-0" onBlur={onBlur}>
       <div className="flex min-w-0 items-center gap-2">
         <Input
           className="min-w-0 flex-1"
@@ -354,7 +394,7 @@ function SecretInput({
         ) : null}
       </div>
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
-    </div>
+    </fieldset>
   );
 }
 
