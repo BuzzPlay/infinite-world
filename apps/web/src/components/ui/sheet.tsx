@@ -1,3 +1,5 @@
+'use client';
+
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
 import { Dialog as SheetPrimitive } from 'radix-ui';
@@ -12,6 +14,7 @@ import {
 } from '../../lib/z-stack';
 import { buttonVariants } from './button';
 import { triggerVariants, type TriggerVariantProps } from './trigger-variants';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return (
@@ -93,6 +96,7 @@ export const SheetContent = React.forwardRef<
     ref,
   ) => {
     const depth = useDialogDepth();
+    const { t } = useTranslation();
     return (
       <SheetPortal>
         <SheetOverlay className={overlayClassName} />
@@ -113,7 +117,7 @@ export const SheetContent = React.forwardRef<
               )}
             >
               <X className="size-4" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{t('common.close')}</span>
             </SheetPrimitive.Close>
           ) : null}
         </SheetPrimitive.Content>

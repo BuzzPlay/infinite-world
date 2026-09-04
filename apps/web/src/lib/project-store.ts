@@ -2,7 +2,7 @@ import type { ProjectRecord } from '../components/projects/project-types';
 
 const PROJECTS_STORAGE_KEY = 'infinite-world.projects';
 const PROJECTS_MIGRATION_KEY = 'infinite-world.projects.cleaned-v1';
-const LEGACY_DEMO_PROJECT_NAMES = new Set(['Aurora Valley', 'Nebula Studio']);
+const LEGACY_PROJECT_NAMES = new Set(['Aurora Valley', 'Nebula Studio']);
 
 export function loadProjects(): ProjectRecord[] {
   if (typeof window === 'undefined') return [];
@@ -12,9 +12,7 @@ export function loadProjects(): ProjectRecord[] {
     if (!Array.isArray(value)) return [];
     const projects = deduplicateProjects(value.filter(isProjectRecord));
     if (window.localStorage.getItem(PROJECTS_MIGRATION_KEY) === null) {
-      const cleanedProjects = projects.filter(
-        (project) => !LEGACY_DEMO_PROJECT_NAMES.has(project.name),
-      );
+      const cleanedProjects = projects.filter((project) => !LEGACY_PROJECT_NAMES.has(project.name));
       saveProjects(cleanedProjects);
       window.localStorage.setItem(PROJECTS_MIGRATION_KEY, '1');
       return cleanedProjects;

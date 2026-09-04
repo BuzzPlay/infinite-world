@@ -1,3 +1,5 @@
+'use client';
+
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
@@ -12,6 +14,7 @@ import {
 } from '../../lib/z-stack';
 import { Button, buttonVariants } from './button';
 import { triggerVariants, type TriggerVariantProps } from './trigger-variants';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return (
@@ -96,6 +99,7 @@ export const DialogContent = React.forwardRef<
     ref,
   ) => {
     const depth = useDialogDepth();
+    const { t } = useTranslation();
     return (
       <DialogPortal>
         {showOverlay && <DialogOverlay className={overlayClassName} />}
@@ -116,7 +120,7 @@ export const DialogContent = React.forwardRef<
               )}
             >
               <X className="size-4" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{t('common.close')}</span>
             </DialogPrimitive.Close>
           ) : null}
         </DialogPrimitive.Content>
@@ -142,6 +146,8 @@ export function DialogFooter({
   children,
   ...props
 }: React.ComponentProps<'div'> & { showCloseButton?: boolean }) {
+  const { t } = useTranslation();
+
   return (
     <div
       data-slot="dialog-footer"
@@ -151,7 +157,7 @@ export function DialogFooter({
       {children}
       {showCloseButton ? (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+          <Button variant="outline">{t('common.close')}</Button>
         </DialogPrimitive.Close>
       ) : null}
     </div>

@@ -13,6 +13,7 @@ import { createPeekController } from './sidebar-peek';
 import { parseSidebarStateCookie } from './sidebar-state';
 import {
   SIDEBAR_MAX_WIDTH_PX,
+  SIDEBAR_LEGACY_DEFAULT_WIDTH_PX,
   SIDEBAR_MIN_WIDTH_PX,
   SIDEBAR_WIDTH_COOKIE_NAME,
   SIDEBAR_WIDTH_PX,
@@ -24,6 +25,7 @@ import { Skeleton } from './skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../../i18n/use-translation';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -243,10 +245,15 @@ function SidebarProvider({
   // must not survive the window being dragged down to 900px.
   React.useEffect(() => {
     const persisted = parseSidebarWidthCookie(document.cookie);
-    if (persisted !== null) {
-      const restored = Math.min(persisted, maxSidebarWidth(window.innerWidth));
+    const restoredPersisted =
+      persisted === SIDEBAR_LEGACY_DEFAULT_WIDTH_PX ? SIDEBAR_WIDTH_PX : persisted;
+    if (restoredPersisted !== null) {
+      const restored = Math.min(restoredPersisted, maxSidebarWidth(window.innerWidth));
       wrapperRef.current?.style.setProperty('--sidebar-width', `${restored}px`);
       setWidthState(restored);
+      if (persisted === SIDEBAR_LEGACY_DEFAULT_WIDTH_PX) {
+        document.cookie = `${SIDEBAR_WIDTH_COOKIE_NAME}=${restored}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+      }
     }
 
     const capToViewport = () =>
@@ -354,6 +361,7 @@ function Sidebar({
 }) {
   const { isMobile, state, openMobile, setOpenMobile, peek, peekEnter, peekLeave, instantToggle } =
     useSidebar();
+  const { t } = useTranslation();
   const slides = collapsible === 'offcanvas' && side === 'left';
   const peekable = slides && state === 'collapsed';
   const peeking = peekable && peek;
@@ -418,8 +426,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>{t('common.sidebar')}</SheetTitle>
+            <SheetDescription>{t('common.mobileSidebarDescription')}</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -573,6 +581,7 @@ function Sidebar({
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
+  const { t } = useTranslation();
 
   return (
     <Button
@@ -590,7 +599,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       {...props}
     >
       <PanelLeftIcon className="cn-rtl-flip" />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">{t('common.toggleSidebar')}</span>
     </Button>
   );
 }
@@ -638,6 +647,7 @@ function SidebarEdgePeek({ className, ...props }: React.ComponentProps<'div'>) {
  */
 function SidebarRail({ className, ...props }: React.ComponentProps<'div'>) {
   const { state, width, setWidth, previewWidth } = useSidebar();
+  const { t } = useTranslation();
   const [resizing, setResizing] = React.useState(false);
   const drag = React.useRef<{ startX: number; startWidth: number; next: number } | null>(null);
   const frame = React.useRef<number | null>(null);
@@ -690,12 +700,12 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'div'>) {
       data-resizing={resizing ? '' : undefined}
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize sidebar"
+      aria-label={t('common.resizeSidebar')}
       aria-valuenow={width}
       aria-valuemin={SIDEBAR_MIN_WIDTH_PX}
       aria-valuemax={SIDEBAR_MAX_WIDTH_PX}
       tabIndex={0}
-      title="Drag to resize — double-click to reset"
+      title={t('common.resizeSidebarHint')}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -916,7 +926,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none cursor-pointer shadow-none group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-background-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-brand-base focus-visible:ring-[0.6px] active:bg-background-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive data-[active=true]:bg-background-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-background-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none cursor-pointer shadow-none group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-background-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-brand-base focus-visible:ring-[0.6px] active:bg-background-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 dark:aria-invalid:border-destructive data-[active=true]:bg-background-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-background-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

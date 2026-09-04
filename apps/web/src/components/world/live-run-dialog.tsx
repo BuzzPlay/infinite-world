@@ -14,7 +14,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '../ui/field';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import type { LiveOutputSettings } from './live-output-types';
-import { platformLabel } from './live-output-types';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface LiveRunDialogProps {
   open: boolean;
@@ -31,6 +31,7 @@ export function LiveRunDialog({
   onOpenChange,
   onRun,
 }: LiveRunDialogProps) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState(initialSettings);
 
   useEffect(() => {
@@ -46,13 +47,13 @@ export function LiveRunDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Run live output</DialogTitle>
-          <DialogDescription>Choose a destination for this world stream.</DialogDescription>
+          <DialogTitle>{t('dashboard.runLiveOutput')}</DialogTitle>
+          <DialogDescription>{t('dashboard.chooseDestination')}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit}>
           <FieldGroup className="gap-4">
             <Field>
-              <FieldLabel htmlFor="live-output-mode">Output mode</FieldLabel>
+              <FieldLabel htmlFor="live-output-mode">{t('dashboard.outputMode')}</FieldLabel>
               <Select
                 value={settings.mode}
                 onValueChange={(mode) =>
@@ -66,13 +67,13 @@ export function LiveRunDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rtmp">RTMP destination</SelectItem>
-                  <SelectItem value="webrtc">Browser preview</SelectItem>
+                  <SelectItem value="rtmp">{t('dashboard.rtmpDestination')}</SelectItem>
+                  <SelectItem value="webrtc">{t('dashboard.browserPreview')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="live-platform">Platform</FieldLabel>
+              <FieldLabel htmlFor="live-platform">{t('dashboard.platform')}</FieldLabel>
               <Select
                 value={settings.platform}
                 onValueChange={(platform) =>
@@ -86,26 +87,26 @@ export function LiveRunDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="youtube">{platformLabel('youtube')}</SelectItem>
-                  <SelectItem value="twitch">{platformLabel('twitch')}</SelectItem>
-                  <SelectItem value="custom">{platformLabel('custom')}</SelectItem>
+                  <SelectItem value="youtube">{t('platform.youtube')}</SelectItem>
+                  <SelectItem value="twitch">{t('platform.twitch')}</SelectItem>
+                  <SelectItem value="custom">{t('platform.custom')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="live-title">Stream title</FieldLabel>
+              <FieldLabel htmlFor="live-title">{t('dashboard.streamTitle')}</FieldLabel>
               <Input
                 id="live-title"
                 value={settings.title}
                 onChange={(event) =>
                   setSettings((current) => ({ ...current, title: event.target.value }))
                 }
-                placeholder="A title for this live output"
+                placeholder={t('dashboard.streamTitlePlaceholder')}
               />
             </Field>
             {settings.mode === 'rtmp' ? (
               <Field>
-                <FieldLabel htmlFor="live-endpoint">RTMP endpoint</FieldLabel>
+                <FieldLabel htmlFor="live-endpoint">{t('dashboard.rtmpEndpoint')}</FieldLabel>
                 <Input
                   id="live-endpoint"
                   type="url"
@@ -120,7 +121,7 @@ export function LiveRunDialog({
             ) : null}
             {settings.mode === 'rtmp' ? (
               <Field>
-                <FieldLabel htmlFor="live-stream-key">Stream key</FieldLabel>
+                <FieldLabel htmlFor="live-stream-key">{t('dashboard.streamKey')}</FieldLabel>
                 <Input
                   id="live-stream-key"
                   type="password"
@@ -132,28 +133,26 @@ export function LiveRunDialog({
                   }
                   placeholder={
                     settings.platform === 'twitch' && twitchStreamKeyConfigured
-                      ? 'Saved Twitch key'
-                      : 'Paste the destination stream key'
+                      ? t('dashboard.savedTwitchKey')
+                      : t('dashboard.destinationStreamKey')
                   }
                 />
                 <FieldDescription>
                   {settings.platform === 'twitch' && twitchStreamKeyConfigured
-                    ? 'The saved local Twitch key will be used when this is blank.'
-                    : 'Kept in this session and sent only when the output is started.'}
+                    ? t('dashboard.savedTwitchKeyWillBeUsed')
+                    : t('dashboard.sessionOnlyKey')}
                 </FieldDescription>
               </Field>
             ) : (
-              <FieldDescription>
-                Generated scenes will be available in this browser while the run is active.
-              </FieldDescription>
+              <FieldDescription>{t('dashboard.generatedScenesBrowser')}</FieldDescription>
             )}
           </FieldGroup>
           <DialogFooter className="mt-5 border-t border-border/70 pt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" variant="default">
-              <Radio size={15} aria-hidden="true" /> Run
+              <Radio size={15} aria-hidden="true" /> {t('common.run')}
             </Button>
           </DialogFooter>
         </form>

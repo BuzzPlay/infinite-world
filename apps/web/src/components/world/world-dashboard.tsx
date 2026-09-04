@@ -16,11 +16,13 @@ import { cn } from '@/lib/utils';
 import { LiveOutputView } from './live-output-view';
 import { PreviewCanvas, type RunAction } from './preview-panel';
 import { ProjectSettingsPanel } from './project-settings-panel';
+import type { GenerationModelOption } from './world-setup-form';
 import { RunMetrics } from './run-metrics';
 import { SceneHistory } from './scene-history';
 import { GenerationHistory } from './generation-history';
 import { SidebarToggle } from '../layout/sidebar-toggle';
 import type { LiveOutputSettings } from './live-output-types';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface WorldDashboardProps {
   draft: WorldConfig;
@@ -35,6 +37,8 @@ interface WorldDashboardProps {
   onNameChange: (value: string) => void;
   onPromptChange: (value: string) => void;
   onGenerationChange: (changes: Partial<GenerationSettings>) => void;
+  visionModelOptions: GenerationModelOption[];
+  videoModelOptions: GenerationModelOption[];
   onAction: (action: RunAction, output?: LiveOutputSettings) => void;
   onOptionSelect: (optionId: string) => void;
   onSave: () => void;
@@ -54,11 +58,14 @@ export function WorldDashboard({
   onNameChange,
   onPromptChange,
   onGenerationChange,
+  visionModelOptions,
+  videoModelOptions,
   onAction,
   onOptionSelect,
   onSave,
   onApplyRuntime,
 }: WorldDashboardProps) {
+  const { t } = useTranslation();
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const livePreviewRef = useRef<HTMLDivElement>(null);
   const { state: sidebarState } = useSidebar();
@@ -79,8 +86,8 @@ export function WorldDashboard({
     >
       <SidebarTrigger
         className="pointer-events-auto absolute left-3 top-3 z-30 md:hidden"
-        title="Open sidebar"
-        aria-label="Open sidebar"
+        title={t('common.openSidebar')}
+        aria-label={t('common.openSidebar')}
       />
       <SidebarToggle placement="floating" />
       <div
@@ -90,9 +97,9 @@ export function WorldDashboard({
         )}
       >
         <TabsList className="pointer-events-auto">
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="live">Live</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="preview">{t('dashboard.preview')}</TabsTrigger>
+          <TabsTrigger value="live">{t('dashboard.live')}</TabsTrigger>
+          <TabsTrigger value="settings">{t('dashboard.settings')}</TabsTrigger>
         </TabsList>
       </div>
       {notice ? (
@@ -107,7 +114,7 @@ export function WorldDashboard({
               variant="ghost"
               className="text-amber-800 hover:bg-amber-500/10 hover:text-amber-900"
               onClick={onDismissNotice}
-              aria-label="Dismiss notice"
+              aria-label={t('dashboard.dismissNotice')}
             >
               <X size={14} aria-hidden="true" />
             </Button>
@@ -178,6 +185,8 @@ export function WorldDashboard({
             onNameChange={onNameChange}
             onPromptChange={onPromptChange}
             onGenerationChange={onGenerationChange}
+            visionModelOptions={visionModelOptions}
+            videoModelOptions={videoModelOptions}
             onSave={onSave}
             onApplyRuntime={onApplyRuntime}
             runtimeBusy={busy === 'apply'}

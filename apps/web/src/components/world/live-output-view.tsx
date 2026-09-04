@@ -6,12 +6,9 @@ import type { LiveOutputSnapshot, RunState, SceneSnapshot } from '@infinite-worl
 import { Button } from '../ui/button';
 import { PreviewCanvas, type RunAction } from './preview-panel';
 import { LiveRunDialog } from './live-run-dialog';
-import {
-  defaultLiveOutputSettings,
-  platformLabel,
-  type LiveOutputSettings,
-} from './live-output-types';
+import { defaultLiveOutputSettings, type LiveOutputSettings } from './live-output-types';
 import { connectBrowserStream, type BrowserStreamState } from '../../lib/browser-stream';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface LiveOutputViewProps {
   worldId: string | null;
@@ -32,6 +29,7 @@ interface LiveOutputViewProps {
 }
 
 export function LiveOutputView(props: LiveOutputViewProps) {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settings, setSettings] = useState<LiveOutputSettings>(defaultLiveOutputSettings);
   const [streamState, setStreamState] = useState<BrowserStreamState>('closed');
@@ -91,7 +89,7 @@ export function LiveOutputView(props: LiveOutputViewProps) {
           muted={muted}
           playsInline
           controls={false}
-          aria-label="Live browser output"
+          aria-label={t('dashboard.liveBrowserOutput')}
         />
       ) : null}
       <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-4">
@@ -101,13 +99,14 @@ export function LiveOutputView(props: LiveOutputViewProps) {
               <Radio size={16} aria-hidden="true" />
             </span>
             <span className="grid gap-0.5">
-              <strong className="text-sm font-medium">Output is ready</strong>
+              <strong className="text-sm font-medium">{t('dashboard.outputReady')}</strong>
               <span className="text-[11px] text-white/60">
-                {platformLabel(settings.platform)} · {settings.title || 'Untitled stream'}
+                {t(`platform.${settings.platform}`)} ·{' '}
+                {settings.title || t('common.untitledStream')}
               </span>
             </span>
             <Button size="sm" variant="secondary" onClick={() => props.onAction('stop')}>
-              <Square size={13} aria-hidden="true" /> Stop
+              <Square size={13} aria-hidden="true" /> {t('common.stop')}
             </Button>
           </div>
         ) : (
@@ -120,7 +119,7 @@ export function LiveOutputView(props: LiveOutputViewProps) {
             variant="default"
             onClick={() => setDialogOpen(true)}
           >
-            <Radio size={17} aria-hidden="true" /> Run
+            <Radio size={17} aria-hidden="true" /> {t('common.run')}
           </Button>
         )}
       </div>
@@ -129,8 +128,8 @@ export function LiveOutputView(props: LiveOutputViewProps) {
           size="icon-sm"
           variant="ghost"
           className="pointer-events-auto absolute bottom-4 right-4 z-30 text-white hover:bg-black/40 hover:text-white"
-          title={muted ? 'Unmute live output' : 'Mute live output'}
-          aria-label={muted ? 'Unmute live output' : 'Mute live output'}
+          title={muted ? t('dashboard.unmuteLiveOutput') : t('dashboard.muteLiveOutput')}
+          aria-label={muted ? t('dashboard.unmuteLiveOutput') : t('dashboard.muteLiveOutput')}
           onClick={() => {
             const nextMuted = !muted;
             setMuted(nextMuted);

@@ -3,6 +3,7 @@ import type { SceneSnapshot, RunSnapshot } from '@infinite-world/api-contract';
 import { SectionCard } from '../ui/section-card';
 import { StatusBadge } from '../ui/status';
 import { runTone, stateLabel } from './run-state';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function RuntimeSummary({
   connected,
@@ -15,19 +16,27 @@ export function RuntimeSummary({
   state: RunSnapshot['state'];
   currentScene: SceneSnapshot | null;
 }) {
+  const { t } = useTranslation();
   const rows = [
     {
-      label: 'Service',
-      value: connected ? 'Connected' : 'Waiting',
+      label: t('runtime.service'),
+      value: connected ? t('runtime.connected') : t('runtime.waiting'),
       tone: connected ? ('success' as const) : ('warning' as const),
     },
-    { label: 'Run state', value: stateLabel(state), tone: runTone(state) },
-    { label: 'Queue depth', value: String(run?.metrics.queueDepth ?? 0) },
-    { label: 'Last context', value: currentScene?.contextSummary ?? 'No context' },
+    {
+      label: t('runtime.runState'),
+      value: t(`run.${state}`) || stateLabel(state),
+      tone: runTone(state),
+    },
+    { label: t('runtime.queueDepth'), value: String(run?.metrics.queueDepth ?? 0) },
+    {
+      label: t('runtime.lastContext'),
+      value: currentScene?.contextSummary ?? t('runtime.noContext'),
+    },
   ];
 
   return (
-    <SectionCard title="Runtime" description="Service and generation state" flush>
+    <SectionCard title={t('runtime.runtime')} description={t('runtime.serviceGeneration')} flush>
       <div className="px-5 py-2">
         {rows.map(({ label, value, tone }) => (
           <div

@@ -1,5 +1,6 @@
 import { DotsThreeIcon } from '@phosphor-icons/react';
 import { FilePlus2, Settings2, Sparkles } from 'lucide-react';
+import { findModel } from '@infinite-world/api-contract/model-catalog';
 
 import type { ProjectRecord } from '../projects/project-types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -19,6 +20,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from '../ui/sidebar';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface AppSidebarProps {
   projects: ProjectRecord[];
@@ -39,6 +41,8 @@ export function AppSidebar({
   onOpenWorkspace,
   settingsActive,
 }: AppSidebarProps) {
+  const { t } = useTranslation();
+
   return (
     <Sidebar
       collapsible="offcanvas"
@@ -53,8 +57,8 @@ export function AppSidebar({
                 <SidebarMenuButton
                   type="button"
                   onClick={onOpenWorkspace}
-                  aria-label="Infinite World"
-                  className="min-w-0 px-1 text-foreground hover:text-foreground"
+                  aria-label={t('common.infiniteWorld')}
+                  className="group/workspace relative flex h-8 min-w-0 w-full items-center gap-2 rounded-md px-1 hover:bg-card"
                 >
                   <Avatar
                     size="sm"
@@ -74,11 +78,11 @@ export function AppSidebar({
             </SidebarMenu>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-0.5">
-            <Hint side="bottom" label="Collapse sidebar">
+            <Hint side="bottom" label={t('common.collapseSidebar')}>
               <SidebarTrigger
                 className="text-muted-foreground hover:text-foreground size-8 shrink-0 cursor-pointer rounded-md transition-transform duration-100 ease-out active:scale-[0.96]"
-                title="Collapse sidebar"
-                aria-label="Collapse sidebar"
+                title={t('common.collapseSidebar')}
+                aria-label={t('common.collapseSidebar')}
               />
             </Hint>
           </div>
@@ -93,18 +97,22 @@ export function AppSidebar({
                 <SidebarMenuButton
                   type="button"
                   onClick={onCreateProject}
-                  className="group/menu-button px-3 font-medium"
+                  className="relative flex items-center gap-2 px-3 text-sm font-medium [&_svg]:size-4"
                 >
                   <FilePlus2 aria-hidden="true" />
-                  <span>New project</span>
+                  <span>{t('common.newProject')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
 
           <SidebarGroup className="py-0">
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <SidebarGroupAction type="button" title="Project options" aria-label="Project options">
+            <SidebarGroupLabel>{t('common.projects')}</SidebarGroupLabel>
+            <SidebarGroupAction
+              type="button"
+              title={t('common.projectOptions')}
+              aria-label={t('common.projectOptions')}
+            >
               <DotsThreeIcon size={16} aria-hidden="true" />
             </SidebarGroupAction>
             <SidebarGroupContent>
@@ -137,14 +145,16 @@ export function AppSidebar({
                             {project.name}
                           </span>
                           <span className="truncate text-xs font-normal leading-4 text-muted-foreground/70">
-                            {project.generation.model}
+                            {projectVideoModel(project)}
                           </span>
                         </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))
                 ) : (
-                  <div className="px-2 py-3 text-sm text-muted-foreground">No projects yet.</div>
+                  <div className="px-2 py-3 text-sm text-muted-foreground">
+                    {t('common.noProjectsYet')}
+                  </div>
                 )}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -159,10 +169,10 @@ export function AppSidebar({
               type="button"
               isActive={settingsActive}
               onClick={onOpenSettings}
-              tooltip="Settings"
+              tooltip={t('common.settings')}
             >
               <Settings2 aria-hidden="true" />
-              <span>Settings</span>
+              <span>{t('common.settings')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -171,4 +181,10 @@ export function AppSidebar({
       <SidebarRail />
     </Sidebar>
   );
+}
+
+function projectVideoModel(project: ProjectRecord) {
+  const model = findModel('video', project.generation.model);
+  if (!model || (model.provider === 'fal' && !project.providerApiKeyConfigured)) return 'none';
+  return model.id;
 }

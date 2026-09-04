@@ -2,7 +2,8 @@ import type { GenerationSettings, WorldConfig } from '@infinite-world/api-contra
 
 import { Button } from '../ui/button';
 import { SectionCard } from '../ui/section-card';
-import { WorldSetupForm } from './world-setup-form';
+import { WorldSetupForm, type GenerationModelOption } from './world-setup-form';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface ProjectSettingsPanelProps {
   draft: WorldConfig;
@@ -10,6 +11,8 @@ interface ProjectSettingsPanelProps {
   onNameChange: (value: string) => void;
   onPromptChange: (value: string) => void;
   onGenerationChange: (changes: Partial<GenerationSettings>) => void;
+  visionModelOptions?: GenerationModelOption[];
+  videoModelOptions?: GenerationModelOption[];
   onSave: () => void;
   onApplyRuntime: () => void;
   runtimeBusy: boolean;
@@ -22,16 +25,21 @@ export function ProjectSettingsPanel({
   onNameChange,
   onPromptChange,
   onGenerationChange,
+  visionModelOptions,
+  videoModelOptions,
   onSave,
   onApplyRuntime,
   runtimeBusy,
   running,
 }: ProjectSettingsPanelProps) {
+  const { t } = useTranslation();
+  const { t: settingsT } = useTranslation('settings');
+
   return (
     <div className="grid min-w-0 gap-4">
       <SectionCard
-        title="Project settings"
-        description="Configuration used by the next run"
+        title={t('dashboard.projectSettings')}
+        description={t('dashboard.nextRunConfiguration')}
         action={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
@@ -40,7 +48,7 @@ export function ProjectSettingsPanel({
               onClick={onApplyRuntime}
               disabled={!running || runtimeBusy}
             >
-              {runtimeBusy ? 'Applying' : 'Apply to run'}
+              {runtimeBusy ? t('dashboard.applying') : t('dashboard.applyToRun')}
             </Button>
             <Button
               size="sm"
@@ -48,7 +56,7 @@ export function ProjectSettingsPanel({
               onClick={onSave}
               disabled={busy || running || !draft.name.trim() || !draft.prompt.trim()}
             >
-              {busy ? 'Saving' : 'Save changes'}
+              {busy ? settingsT('saving') : t('dashboard.saveChanges')}
             </Button>
           </div>
         }
@@ -59,10 +67,12 @@ export function ProjectSettingsPanel({
           onNameChange={onNameChange}
           onPromptChange={onPromptChange}
           onGenerationChange={onGenerationChange}
+          visionModelOptions={visionModelOptions}
+          videoModelOptions={videoModelOptions}
         />
       </SectionCard>
       <p className="px-1 text-xs leading-normal text-muted-foreground">
-        Changes apply when the current run is stopped or when a new run starts.
+        {t('dashboard.changesApplyLater')}
       </p>
     </div>
   );

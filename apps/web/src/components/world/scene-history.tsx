@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Empty, EmptyDescription, EmptyMedia } from '../ui/empty';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '../ui/item';
 import { SectionCard } from '../ui/section-card';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function SceneHistory({
   scenes,
@@ -15,17 +16,19 @@ export function SceneHistory({
   currentScene: SceneSnapshot | null;
   onCopy: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <SectionCard
-      title="Recent scenes"
-      description={`${scenes.length} scene${scenes.length === 1 ? '' : 's'} in local history`}
+      title={t('history.recentScenes')}
+      description={t('history.sceneCount', { count: scenes.length })}
       action={
         <Button
           size="icon"
           variant="ghost"
           type="button"
-          title="Copy scene context"
-          aria-label="Copy scene context"
+          title={t('history.copySceneContext')}
+          aria-label={t('history.copySceneContext')}
           onClick={onCopy}
         >
           <Copy size={15} aria-hidden="true" />
@@ -61,13 +64,15 @@ export function SceneHistory({
                     <img className="size-full object-cover" src={scene.previewUrl} alt="" />
                   ) : (
                     <span className="grid size-full place-items-center bg-muted text-[10px] text-muted-foreground">
-                      No media
+                      {t('history.noMedia')}
                     </span>
                   )}
                 </ItemMedia>
                 <ItemContent className="gap-0.5">
                   <ItemTitle className="text-xs">
-                    Scene {String(scene.sequence).padStart(2, '0')}
+                    {t('history.scene', {
+                      sequence: String(scene.sequence).padStart(2, '0'),
+                    })}
                   </ItemTitle>
                   <ItemDescription className="line-clamp-1 truncate text-xs">
                     {scene.contextSummary}
@@ -85,7 +90,7 @@ export function SceneHistory({
             <EmptyMedia>
               <Clapperboard size={17} aria-hidden="true" />
             </EmptyMedia>
-            <EmptyDescription>Scenes will be listed as the run progresses</EmptyDescription>
+            <EmptyDescription>{t('history.scenesProgress')}</EmptyDescription>
           </Empty>
         )}
       </div>

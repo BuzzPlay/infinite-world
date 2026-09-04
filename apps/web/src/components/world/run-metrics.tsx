@@ -3,43 +3,45 @@ import type { RunSnapshot } from '@infinite-world/api-contract';
 
 import { MetricsHistory } from './metrics-history';
 import { formatUptime } from './run-state';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function RunMetrics({ run }: { run: RunSnapshot | null }) {
+  const { t } = useTranslation();
   const metrics = [
     {
-      label: 'Scenes',
+      label: t('metrics.scenes'),
       value: run?.metrics.sceneCount ?? 0,
-      detail: 'in this run',
+      detail: t('metrics.inThisRun'),
       icon: <Clapperboard size={16} />,
     },
     {
-      label: 'Generation',
+      label: t('metrics.generation'),
       value: `${run?.metrics.generationLatencyMs ?? 0} ms`,
-      detail: 'latest latency',
+      detail: t('metrics.latestLatency'),
       icon: <Gauge size={16} />,
     },
     {
-      label: 'Output',
+      label: t('metrics.output'),
       value: `${run?.metrics.outputFps ?? 0} fps`,
       detail: run?.metrics.outputState ?? 'idle',
       icon: <Radio size={16} />,
     },
     {
-      label: 'Chat',
+      label: t('metrics.chat'),
       value: String(run?.metrics.chatQueueDepth ?? 0),
       detail: run?.metrics.chatState ?? 'idle',
       icon: <MessageCircle size={16} />,
     },
     {
-      label: 'Output link',
+      label: t('metrics.outputLink'),
       value: run?.metrics.outputState ?? 'idle',
-      detail: `${run?.metrics.outputReconnects ?? 0} reconnects`,
+      detail: t('metrics.reconnects', { count: run?.metrics.outputReconnects ?? 0 }),
       icon: <Wifi size={16} />,
     },
     {
-      label: 'Uptime',
+      label: t('metrics.uptime'),
       value: formatUptime(run?.metrics.uptimeSeconds ?? 0),
-      detail: 'current run',
+      detail: t('metrics.currentRun'),
       icon: <Activity size={16} />,
     },
   ];

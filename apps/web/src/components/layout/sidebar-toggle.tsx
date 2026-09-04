@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import Hint from '../ui/hint';
 import { useSidebar } from '../ui/sidebar';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function SidebarToggle({
   className,
@@ -15,10 +16,11 @@ export function SidebarToggle({
   side?: 'top' | 'right' | 'bottom' | 'left';
 }) {
   const { state, isMobile, peek, peekEnter, peekLeave, toggleSidebar } = useSidebar();
+  const { t } = useTranslation();
 
   if (isMobile || state === 'expanded') return null;
 
-  const label = peek ? 'Pin sidebar' : 'Open sidebar';
+  const label = peek ? t('common.pinSidebar') : t('common.openSidebar');
 
   return (
     <Hint label={label} side={side}>

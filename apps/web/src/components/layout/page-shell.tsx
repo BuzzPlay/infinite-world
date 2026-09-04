@@ -4,15 +4,15 @@ import { cn } from '@/lib/utils';
 import { StatusBadge, type StatusTone } from '../ui/status';
 import { SidebarEdgePeek, SidebarProvider } from '../ui/sidebar';
 import { SidebarToggle } from './sidebar-toggle';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function PageShell({ children, className }: PropsWithChildren<{ className?: string }>) {
   return (
     <SidebarProvider
       className={cn(
-        'min-h-svh min-w-0 w-full max-w-full overflow-x-hidden bg-background text-foreground',
+        'min-h-svh min-w-0 w-full max-w-full overflow-x-hidden text-foreground',
         className,
       )}
-      data-slot="page-shell"
     >
       {children}
       <SidebarEdgePeek />
@@ -33,6 +33,8 @@ export function PageHeader({
   statusTone?: StatusTone;
   action?: ReactNode;
 }) {
+  const { t } = useTranslation();
+
   return (
     <header
       className="flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-12"
@@ -42,7 +44,7 @@ export function PageHeader({
         <SidebarToggle />
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span>Workspace</span>
+            <span>{t('common.workspace')}</span>
             <span aria-hidden="true">/</span>
             <strong className="font-medium text-foreground">{context}</strong>
           </div>

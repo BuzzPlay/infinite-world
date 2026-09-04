@@ -13,6 +13,7 @@ import type {
   WorldSnapshot,
   LiveOutputSettings,
 } from '@infinite-world/api-contract';
+import { isFalVideoModel, isGoogleVisionModel } from '@infinite-world/api-contract/model-catalog';
 
 import { Alert, AlertActions, AlertDescription } from '@/components/ui/alert';
 import { AppSidebar } from '@/components/layout/app-sidebar';
@@ -28,9 +29,12 @@ import { ProviderSettingsPage } from '@/components/settings/provider-settings-pa
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { SIDEBAR_MAX_WIDTH_PX } from '@/components/ui/sidebar-width';
 import { WorldDashboard } from '@/components/world/world-dashboard';
 import { defaultWorldConfig } from '@/components/world/world-defaults';
+import {
+  generationModelOptionsFor,
+  visionModelOptionsFor,
+} from '@/components/world/world-setup-form';
 import { runStateRank } from '@/components/world/run-state';
 import {
   chooseSceneOption,
@@ -49,9 +53,11 @@ import {
   updateWorld,
 } from '@/lib/api';
 import { deduplicateProjects, loadProjects, saveProjects } from '@/lib/project-store';
+import { useTranslation } from '@/i18n/use-translation';
 type AppAction = 'save' | 'create' | 'select' | 'start' | 'stop' | 'restart' | 'apply' | 'choice';
 
 function WorldConsole() {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [world, setWorld] = useState<WorldSnapshot | null>(null);
@@ -60,18 +66,13 @@ function WorldConsole() {
   const [scenes, setScenes] = useState<SceneSnapshot[]>([]);
   const [providerSettings, setProviderSettings] = useState<ProviderSettings>({
     falApiKeyConfigured: false,
-    defaultModel: defaultWorldConfig.generation.model,
-    llmTextModel: 'google/gemini-2.5-flash',
-    llmVisionModel: 'google/gemini-2.5-flash',
-    llmTemperature: 0.7,
+    googleApiKeyConfigured: false,
     defaultStylePreset: 'cohesive',
     twitchChannel: '',
     twitchUsername: '',
     chatLookback: 5,
     twitchStreamKeyConfigured: false,
     twitchOauthTokenConfigured: false,
-    openaiApiKeyConfigured: false,
-    groqApiKeyConfigured: false,
   });
   const [loading, setLoading] = useState(true);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -264,10 +265,12 @@ function WorldConsole() {
       if (action === 'save') {
         const response = world ? await updateWorld(world.id, draft) : await createWorld(draft);
         applyWorldResponse(response, activeProjectId ?? undefined);
-        setNotice('Project saved');
+        setNotice(t('dashboard.projectSaved'));
       } else if (action === 'apply' && world) {
         await updateRunConfig(world.id, {
           mode: draft.generation.mode,
+          model: draft.generation.model,
+          visionModel: draft.generation.visionModel,
           width: draft.generation.width,
           height: draft.generation.height,
           durationSeconds: draft.generation.durationSeconds,
@@ -293,7 +296,7 @@ function WorldConsole() {
         // saved runtime values become the draft baseline immediately.
         const current = await getCurrentWorld();
         applyWorldResponse(current, activeProjectId ?? undefined);
-        setNotice('Run settings applied');
+        setNotice(t('dashboard.runSettingsApplied'));
       } else if (action === 'start') {
         let activeWorld = world;
         if (!activeWorld || isDirty) {
@@ -314,7 +317,7 @@ function WorldConsole() {
         applyRunResponse(world, (await restartRun(world.id)).run);
       }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'The request failed');
+      setNotice(error instanceof Error ? error.message : t('dashboard.requestFailed'));
     } finally {
       setBusy(null);
     }
@@ -325,15 +328,22 @@ function WorldConsole() {
     setNotice(null);
     try {
       if (isHostedModel(config.generation.model) && !providerSettings.falApiKeyConfigured) {
-        setNotice('Configure a provider key in Settings before creating this project');
+        setNotice(t('dashboard.configureProvider'));
+        return;
+      }
+      if (
+        isGoogleVisionModel(config.generation.visionModel) &&
+        !providerSettings.googleApiKeyConfigured
+      ) {
+        setNotice(t('dashboard.configureProvider'));
         return;
       }
       applyWorldResponse(await createWorld(config));
       setCreateProjectOpen(false);
       setSettingsOpen(false);
-      setNotice('Project created');
+      setNotice(t('dashboard.projectCreated'));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'The project could not be created');
+      setNotice(error instanceof Error ? error.message : t('dashboard.projectCreateFailed'));
     } finally {
       setBusy(null);
     }
@@ -356,7 +366,7 @@ function WorldConsole() {
     try {
       applyRunResponse(world, (await chooseSceneOption(world.id, optionId)).run);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'The direction could not be selected');
+      setNotice(error instanceof Error ? error.message : t('dashboard.directionFailed'));
     } finally {
       setBusy(null);
     }
@@ -376,11 +386,11 @@ function WorldConsole() {
   const selectProject = async (project: ProjectRecord) => {
     if (project.id === activeProjectId || busy !== null) return;
     if (run && ['preparing', 'running', 'stopping'].includes(run.state)) {
-      setNotice('Stop the current run before switching projects');
+      setNotice(t('dashboard.stopBeforeSwitching'));
       return;
     }
     if (world && isDirty) {
-      setNotice('Save the current project before switching');
+      setNotice(t('dashboard.saveBeforeSwitching'));
       return;
     }
     setBusy('select');
@@ -390,7 +400,7 @@ function WorldConsole() {
       const response = await selectWorld(project.worldId);
       applyWorldResponse(response, project.id);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'The project could not be loaded');
+      setNotice(error instanceof Error ? error.message : t('dashboard.projectLoadFailed'));
     } finally {
       setBusy(null);
     }
@@ -400,7 +410,10 @@ function WorldConsole() {
 
   return (
     <PageShell className={world ? 'relative bg-background' : undefined}>
-      <div className="min-w-0 shrink-0 overflow-hidden" style={{ maxWidth: SIDEBAR_MAX_WIDTH_PX }}>
+      <div
+        data-slot="sidebar-left-slot"
+        className="overflow-hidden transition-[max-width,opacity] duration-500 ease-out"
+      >
         <AppSidebar
           projects={projects}
           activeProjectId={activeProjectId}
@@ -417,12 +430,15 @@ function WorldConsole() {
       <SidebarInset className="min-h-0 min-w-0">
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           {settingsOpen ? (
-            <ProviderSettingsPage
-              settings={providerSettings}
-              loading={settingsLoading}
-              busy={settingsBusy}
-              onSave={saveProviderSettings}
-            />
+            <>
+              <SidebarToggle placement="floating" />
+              <ProviderSettingsPage
+                settings={providerSettings}
+                loading={settingsLoading}
+                busy={settingsBusy}
+                onSave={saveProviderSettings}
+              />
+            </>
           ) : world ? (
             <WorldDashboard
               draft={draft}
@@ -430,6 +446,8 @@ function WorldConsole() {
               scenes={scenes}
               busy={busy}
               loading={loading}
+              visionModelOptions={visionModelOptionsFor(providerSettings.googleApiKeyConfigured)}
+              videoModelOptions={generationModelOptionsFor(providerSettings.falApiKeyConfigured)}
               twitchStreamKeyConfigured={providerSettings.twitchStreamKeyConfigured}
               notice={notice}
               onDismissNotice={() => setNotice(null)}
@@ -452,8 +470,8 @@ function WorldConsole() {
               <SidebarToggle placement="floating" />
               <SidebarTrigger
                 className="pointer-events-auto absolute left-3 top-3 z-30 md:hidden"
-                title="Open sidebar"
-                aria-label="Open sidebar"
+                title={t('common.openSidebar')}
+                aria-label={t('common.openSidebar')}
               />
               {notice ? (
                 <Alert
@@ -467,7 +485,7 @@ function WorldConsole() {
                       variant="ghost"
                       className="size-7 text-amber-800 hover:bg-amber-500/10 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
                       onClick={() => setNotice(null)}
-                      aria-label="Dismiss notice"
+                      aria-label={t('common.dismissNotice')}
                     >
                       <X size={15} aria-hidden="true" />
                     </Button>
@@ -478,16 +496,15 @@ function WorldConsole() {
                 {showEmptyState ? (
                   <SectionCard
                     className="w-full max-w-xl"
-                    title="Create your project"
-                    description="Configure a world, then open its live preview."
+                    title={t('empty.createYourProject')}
+                    description={t('empty.createDescription')}
                     bodyClassName="flex flex-wrap items-center justify-between gap-4 px-5 pb-5 pt-0"
                   >
                     <p className="max-w-md text-sm leading-normal text-muted-foreground">
-                      Projects keep the prompt and generation settings for each world in this
-                      browser.
+                      {t('empty.createDetails')}
                     </p>
                     <Button variant="default" onClick={() => setCreateProjectOpen(true)}>
-                      <Plus size={15} aria-hidden="true" /> New project
+                      <Plus size={15} aria-hidden="true" /> {t('common.newProject')}
                     </Button>
                   </SectionCard>
                 ) : (
@@ -495,7 +512,7 @@ function WorldConsole() {
                     className="grid min-h-72 place-items-center text-sm text-muted-foreground"
                     role="status"
                   >
-                    Loading project
+                    {t('empty.loadingProject')}
                   </div>
                 )}
               </div>
@@ -509,14 +526,13 @@ function WorldConsole() {
         providerSettings={providerSettings}
         onOpenChange={setCreateProjectOpen}
         onCreate={createProject}
-        onOpenSettings={openSettings}
       />
     </PageShell>
   );
 }
 
 function isHostedModel(model: string) {
-  return model === 'fal-ltx-video' || model === 'fal-ltx-2.3' || model === 'ltx-2.3';
+  return isFalVideoModel(model);
 }
 
 function worldToConfig(world: WorldSnapshot): WorldConfig {

@@ -1,6 +1,7 @@
 import type { SceneOptionSnapshot } from '@infinite-world/api-contract';
 
 import { Button } from '../ui/button';
+import { useTranslation } from '../../i18n/use-translation';
 
 interface BranchChoicePanelProps {
   options: SceneOptionSnapshot[];
@@ -9,17 +10,18 @@ interface BranchChoicePanelProps {
 }
 
 export function BranchChoicePanel({ options, selectedOptionId, onSelect }: BranchChoicePanelProps) {
+  const { t } = useTranslation();
   if (!options.length) return null;
 
   return (
     <section
       className="pointer-events-auto w-full max-w-3xl rounded-md border border-border bg-background/95 p-2.5 text-foreground shadow-lg backdrop-blur-md sm:p-3"
-      aria-label="Next scene choices"
+      aria-label={t('dashboard.nextSceneChoices')}
     >
       <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs sm:text-sm">
-        <strong className="font-medium">Pick what happens next</strong>
+        <strong className="font-medium">{t('dashboard.pickWhatHappens')}</strong>
         <span className="text-[11px] text-muted-foreground">
-          {selectedOptionId ? 'Choice selected' : 'Choose a direction'}
+          {selectedOptionId ? t('dashboard.choiceSelected') : t('dashboard.chooseDirection')}
         </span>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -39,7 +41,7 @@ export function BranchChoicePanel({ options, selectedOptionId, onSelect }: Branc
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-medium">{option.title}</span>
               <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-                {option.votes} votes
+                {t('dashboard.votes', { count: option.votes })}
               </span>
             </Button>
           );

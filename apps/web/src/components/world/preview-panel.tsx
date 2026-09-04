@@ -6,6 +6,7 @@ import { BranchChoicePanel } from './branch-choice-panel';
 import { Button } from '../ui/button';
 import { Loading } from '../ui/loading';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../../i18n/use-translation';
 
 export type RunAction = 'start' | 'stop' | 'restart';
 
@@ -38,6 +39,7 @@ export function PreviewCanvas({
   onAction,
   showRunCta = true,
 }: PreviewCanvasProps) {
+  const { t } = useTranslation();
   const previewUrl = currentScene?.previewUrl.trim() ?? '';
   const mediaScene = currentScene && previewUrl ? currentScene : null;
   const hasMedia = mediaScene !== null;
@@ -63,13 +65,13 @@ export function PreviewCanvas({
             loop
             playsInline
             controls={false}
-            aria-label={`Scene ${mediaScene.sequence}`}
+            aria-label={t('dashboard.scene', { sequence: mediaScene.sequence })}
           />
         ) : (
           <img
             className="absolute inset-0 size-full object-cover"
             src={previewUrl}
-            alt={`Scene ${mediaScene.sequence}`}
+            alt={t('dashboard.scene', { sequence: mediaScene.sequence })}
           />
         )
       ) : (
@@ -96,7 +98,7 @@ export function PreviewCanvas({
         <div className="absolute inset-0 grid place-items-center px-6 text-center text-foreground">
           <div className="grid justify-items-center gap-3">
             <Loading className="size-6 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Preparing preview</span>
+            <span className="text-sm text-muted-foreground">{t('dashboard.preparingPreview')}</span>
           </div>
         </div>
       ) : null}
@@ -114,8 +116,8 @@ export function PreviewCanvas({
             size="icon-sm"
             variant="ghost"
             className={hasMedia ? 'text-white hover:bg-white/15 hover:text-white' : undefined}
-            title={state === 'stopping' ? 'Stopping' : 'Stop preview'}
-            aria-label={state === 'stopping' ? 'Stopping' : 'Stop preview'}
+            title={state === 'stopping' ? t('dashboard.stopping') : t('dashboard.stopPreview')}
+            aria-label={state === 'stopping' ? t('dashboard.stopping') : t('dashboard.stopPreview')}
             onClick={() => onAction('stop')}
             disabled={busy !== null || state === 'stopping'}
           >
@@ -126,8 +128,8 @@ export function PreviewCanvas({
             size="icon-sm"
             variant="ghost"
             className={hasMedia ? 'text-white hover:bg-white/15 hover:text-white' : undefined}
-            title="Start preview"
-            aria-label="Start preview"
+            title={t('dashboard.startPreview')}
+            aria-label={t('dashboard.startPreview')}
             onClick={() => onAction('start')}
             disabled={busy !== null || loading}
           >
@@ -138,8 +140,8 @@ export function PreviewCanvas({
           size="icon-sm"
           variant="ghost"
           className={hasMedia ? 'text-white hover:bg-white/15 hover:text-white' : undefined}
-          title="Restart preview"
-          aria-label="Restart preview"
+          title={t('dashboard.restartPreview')}
+          aria-label={t('dashboard.restartPreview')}
           onClick={() => onAction('restart')}
           disabled={busy !== null || !canRestart}
         >
@@ -149,8 +151,8 @@ export function PreviewCanvas({
           size="icon-sm"
           variant="ghost"
           className={hasMedia ? 'text-white hover:bg-white/15 hover:text-white' : undefined}
-          title="Fullscreen preview"
-          aria-label="Fullscreen preview"
+          title={t('dashboard.fullscreenPreview')}
+          aria-label={t('dashboard.fullscreenPreview')}
           onClick={() => void previewRef.current?.requestFullscreen?.()}
         >
           <Maximize2 size={14} aria-hidden="true" />

@@ -4,12 +4,15 @@ import type { GenerationHistorySnapshot } from '@infinite-world/api-contract';
 import { Empty, EmptyDescription, EmptyMedia } from '../ui/empty';
 import { Item, ItemContent, ItemDescription, ItemTitle } from '../ui/item';
 import { SectionCard } from '../ui/section-card';
+import { useTranslation } from '../../i18n/use-translation';
 
 export function GenerationHistory({ records }: { records: GenerationHistorySnapshot[] }) {
+  const { t } = useTranslation();
+
   return (
     <SectionCard
-      title="Generation history"
-      description="Effective settings used by recent scenes"
+      title={t('history.generationHistory')}
+      description={t('history.effectiveSettings')}
       flush
     >
       <div className="px-2 py-1">
@@ -25,22 +28,23 @@ export function GenerationHistory({ records }: { records: GenerationHistorySnaps
               >
                 <ItemContent className="gap-0.5">
                   <ItemTitle className="text-xs">
-                    Generation {String(record.generationId).padStart(2, '0')}
+                    {t('history.generationHistory')} {String(record.generationId).padStart(2, '0')}
                   </ItemTitle>
                   <ItemDescription className="line-clamp-2 text-xs">
-                    {record.prompt || 'No prompt recorded'}
+                    {record.prompt || t('history.noPrompt')}
                   </ItemDescription>
                   <span className="text-[11px] text-muted-foreground">
-                    {record.model} · {record.mode} · {record.durationSeconds}s · {record.frameRate}{' '}
-                    fps · {record.numFrames} frames
+                    {record.visionModel ? `${record.visionModel} · ` : ''}
+                    {record.model} · {record.mode} · {record.durationSeconds}
+                    {t('project.seconds')} · {record.frameRate} fps
                   </span>
                   <span className="text-[11px] text-muted-foreground">
                     {record.width} x {record.height}
                     {record.resolution ? ` · ${record.resolution}` : ''}
                     {record.aspectRatio ? ` · ${record.aspectRatio}` : ''}
-                    {record.initialImageUrl ? ' · initial image' : ''}
+                    {record.initialImageUrl ? ` · ${t('history.initialImage')}` : ''}
                     {record.characterRefs.length
-                      ? ` · ${record.characterRefs.length} reference${record.characterRefs.length === 1 ? '' : 's'}`
+                      ? ` · ${t('history.referenceCount', { count: record.characterRefs.length })}`
                       : ''}
                   </span>
                 </ItemContent>
@@ -54,9 +58,7 @@ export function GenerationHistory({ records }: { records: GenerationHistorySnaps
             <EmptyMedia>
               <History size={17} aria-hidden="true" />
             </EmptyMedia>
-            <EmptyDescription>
-              Generation inputs will be listed as the run progresses
-            </EmptyDescription>
+            <EmptyDescription>{t('history.generationProgress')}</EmptyDescription>
           </Empty>
         )}
       </div>
