@@ -13,7 +13,7 @@ import type {
   WorldSnapshot,
   LiveOutputSettings,
 } from '@infinite-world/api-contract';
-import { isFalVideoModel, isGoogleVisionModel } from '@infinite-world/api-contract/model-catalog';
+import { isModelConfigured } from '@infinite-world/api-contract/model-catalog';
 
 import { Alert, AlertActions, AlertDescription } from '@/components/ui/alert';
 import { AppSidebar } from '@/components/layout/app-sidebar';
@@ -25,16 +25,14 @@ import {
 } from '@/components/projects/create-project-dialog';
 import type { ProjectRecord } from '@/components/projects/project-types';
 import { projectFromWorld } from '@/components/projects/project-types';
+import { RenameProjectDialog } from '@/components/projects/rename-project-dialog';
 import { ProviderSettingsPage } from '@/components/settings/provider-settings-page';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { WorldDashboard } from '@/components/world/world-dashboard';
 import { defaultWorldConfig } from '@/components/world/world-defaults';
-import {
-  generationModelOptionsFor,
-  visionModelOptionsFor,
-} from '@/components/world/world-setup-form';
+import { generationModelOptionsFor, visionModelOptionsFor } from '@/components/world/model-options';
 import { runStateRank } from '@/components/world/run-state';
 import {
   chooseSceneOption,
@@ -49,12 +47,12 @@ import {
   subscribeToEvents,
   subscribeToRunMetrics,
   updateProviderSettings,
-  updateRunConfig,
   updateWorld,
 } from '@/lib/api';
 import { deduplicateProjects, loadProjects, saveProjects } from '@/lib/project-store';
 import { useTranslation } from '@/i18n/use-translation';
-type AppAction = 'save' | 'create' | 'select' | 'start' | 'stop' | 'restart' | 'apply' | 'choice';
+type AppAction = 'start' | 'stop' | 'restart';
+type BusyAction = AppAction | 'save' | 'create' | 'select' | 'rename' | 'choice';
 
 function WorldConsole() {
   const { t } = useTranslation();
@@ -77,8 +75,9 @@ function WorldConsole() {
   const [loading, setLoading] = useState(true);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsBusy, setSettingsBusy] = useState(false);
-  const [busy, setBusy] = useState<AppAction | null>(null);
+  const [busy, setBusy] = useState<BusyAction | null>(null);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [projectToRename, setProjectToRename] = useState<ProjectRecord | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const runIdRef = useRef<string | null>(null);
@@ -226,10 +225,11 @@ function WorldConsole() {
     };
   }, []);
 
+  const currentWorldId = world?.id ?? null;
+  const currentRunState = run?.state ?? null;
+
   useEffect(() => {
-    if (!world || !run || !['preparing', 'running', 'stopping'].includes(run.state)) {
-      return;
-    }
+    if (!currentWorldId || !isLiveRunState(currentRunState)) return;
     const refresh = () => {
       void getCurrentWorld()
         .then((response) => {
@@ -241,63 +241,63 @@ function WorldConsole() {
     };
     const timer = window.setInterval(refresh, 2_000);
     return () => window.clearInterval(timer);
-  }, [applyRun, run?.state, syncProject, world?.id]);
+  }, [applyRun, currentRunState, currentWorldId, syncProject]);
 
   useEffect(() => {
-    if (!world || !run || !['preparing', 'running', 'stopping'].includes(run.state)) return;
-    return subscribeToRunMetrics(world.id, (metrics) => {
+    if (!currentWorldId || !isLiveRunState(currentRunState)) return;
+    return subscribeToRunMetrics(currentWorldId, (metrics) => {
       setRun((current) => {
         if (!current || current.id !== metrics.runId) return current;
         return { ...current, state: metrics.state, metrics: metrics.metrics };
       });
     });
-  }, [run?.id, run?.state, world?.id]);
+  }, [currentRunState, currentWorldId]);
 
   const isDirty = useMemo(() => {
     if (!world) return false;
     return JSON.stringify(draft) !== JSON.stringify(worldToConfig(world));
   }, [draft, world]);
 
+  const saveWorldConfig = async (config: WorldConfig) => {
+    setBusy('save');
+    setNotice(null);
+    try {
+      const response = world ? await updateWorld(world.id, config) : await createWorld(config);
+      applyWorldResponse(response, activeProjectId ?? undefined);
+      setNotice(t('dashboard.projectSaved'));
+      return true;
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t('dashboard.requestFailed'));
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const perform = async (action: AppAction, output?: LiveOutputSettings) => {
     setBusy(action);
     setNotice(null);
     try {
-      if (action === 'save') {
-        const response = world ? await updateWorld(world.id, draft) : await createWorld(draft);
-        applyWorldResponse(response, activeProjectId ?? undefined);
-        setNotice(t('dashboard.projectSaved'));
-      } else if (action === 'apply' && world) {
-        await updateRunConfig(world.id, {
-          mode: draft.generation.mode,
-          model: draft.generation.model,
-          visionModel: draft.generation.visionModel,
-          width: draft.generation.width,
-          height: draft.generation.height,
-          durationSeconds: draft.generation.durationSeconds,
-          frameRate: draft.generation.frameRate,
-          guidanceScale: draft.generation.guidanceScale,
-          strength: draft.generation.strength,
-          seed: draft.generation.seed,
-          negativePrompt: draft.generation.negativePrompt,
-          initialImageUrl: draft.generation.initialImageUrl,
-          numFrames: draft.generation.numFrames,
-          timesteps: draft.generation.timesteps,
-          targetFps: draft.generation.targetFps,
-          stgScale: draft.generation.stgScale,
-          spatioTemporalGuidanceBlocks: draft.generation.spatioTemporalGuidanceBlocks,
-          resolution: draft.generation.resolution,
-          aspectRatio: draft.generation.aspectRatio,
-          noiseScale: draft.generation.noiseScale,
-          enableAudio: draft.generation.enableAudio,
-          stylePreset: draft.generation.stylePreset,
-          characterRefs: draft.generation.characterRefs,
-        });
-        // PATCH returns the run only. Pull the world snapshot again so the
-        // saved runtime values become the draft baseline immediately.
-        const current = await getCurrentWorld();
-        applyWorldResponse(current, activeProjectId ?? undefined);
-        setNotice(t('dashboard.runSettingsApplied'));
-      } else if (action === 'start') {
+      if (action === 'start' || action === 'restart') {
+        if (draft.generation.model === 'none') {
+          setNotice(t('dashboard.selectVideoModel'));
+          return;
+        }
+        if (
+          !isModelConfigured('video', draft.generation.model, {
+            googleApiKeyConfigured: providerSettings.googleApiKeyConfigured,
+            falApiKeyConfigured: providerSettings.falApiKeyConfigured,
+          }) ||
+          !isModelConfigured('vision', draft.generation.visionModel, {
+            googleApiKeyConfigured: providerSettings.googleApiKeyConfigured,
+            falApiKeyConfigured: providerSettings.falApiKeyConfigured,
+          })
+        ) {
+          setNotice(t('dashboard.configureProvider'));
+          return;
+        }
+      }
+      if (action === 'start') {
         let activeWorld = world;
         if (!activeWorld || isDirty) {
           const response = activeWorld
@@ -314,7 +314,13 @@ function WorldConsole() {
       } else if (action === 'stop' && world) {
         applyRunResponse(world, (await stopRun(world.id)).run);
       } else if (action === 'restart' && world) {
-        applyRunResponse(world, (await restartRun(world.id)).run);
+        let activeWorld = world;
+        if (isDirty) {
+          const response = await updateWorld(world.id, draft);
+          applyWorldResponse(response, activeProjectId ?? undefined);
+          activeWorld = response.world;
+        }
+        applyRunResponse(activeWorld, (await restartRun(activeWorld.id)).run);
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : t('dashboard.requestFailed'));
@@ -327,17 +333,6 @@ function WorldConsole() {
     setBusy('create');
     setNotice(null);
     try {
-      if (isHostedModel(config.generation.model) && !providerSettings.falApiKeyConfigured) {
-        setNotice(t('dashboard.configureProvider'));
-        return;
-      }
-      if (
-        isGoogleVisionModel(config.generation.visionModel) &&
-        !providerSettings.googleApiKeyConfigured
-      ) {
-        setNotice(t('dashboard.configureProvider'));
-        return;
-      }
       applyWorldResponse(await createWorld(config));
       setCreateProjectOpen(false);
       setSettingsOpen(false);
@@ -356,6 +351,41 @@ function WorldConsole() {
       setProviderSettings(response);
     } finally {
       setSettingsBusy(false);
+    }
+  };
+
+  const renameProject = async (project: ProjectRecord, name: string) => {
+    setBusy('rename');
+    setNotice(null);
+    try {
+      const currentProject = world?.id === project.worldId;
+      const source = currentProject ? draft : project;
+      const response = await updateWorld(project.worldId, {
+        name,
+        prompt: source.prompt,
+        generation: source.generation,
+      });
+
+      if (currentProject) {
+        applyWorldResponse(response, project.id);
+      } else {
+        const nextProjects = deduplicateProjects(
+          projects.map((item) =>
+            item.id === project.id
+              ? projectFromWorld(response.world, response.providerApiKeyConfigured, item)
+              : item,
+          ),
+        );
+        setProjects(nextProjects);
+        saveProjects(nextProjects);
+      }
+      setNotice(t('dashboard.projectRenamed'));
+      return true;
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t('dashboard.projectRenameFailed'));
+      return false;
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -422,6 +452,7 @@ function WorldConsole() {
             setCreateProjectOpen(true);
           }}
           onProjectSelect={(project) => void selectProject(project)}
+          onProjectRename={setProjectToRename}
           onOpenSettings={openSettings}
           onOpenWorkspace={openWorkspace}
           settingsActive={settingsOpen}
@@ -446,14 +477,15 @@ function WorldConsole() {
               scenes={scenes}
               busy={busy}
               loading={loading}
-              visionModelOptions={visionModelOptionsFor(providerSettings.googleApiKeyConfigured)}
+              visionModelOptions={visionModelOptionsFor(
+                providerSettings.googleApiKeyConfigured,
+                providerSettings.falApiKeyConfigured,
+              )}
               videoModelOptions={generationModelOptionsFor(providerSettings.falApiKeyConfigured)}
               twitchStreamKeyConfigured={providerSettings.twitchStreamKeyConfigured}
               notice={notice}
               onDismissNotice={() => setNotice(null)}
               previewRef={previewRef}
-              onNameChange={(name) => setDraft((current) => ({ ...current, name }))}
-              onPromptChange={(prompt) => setDraft((current) => ({ ...current, prompt }))}
               onGenerationChange={(changes) =>
                 setDraft((current) => ({
                   ...current,
@@ -462,8 +494,7 @@ function WorldConsole() {
               }
               onAction={(action, output) => void perform(action, output)}
               onOptionSelect={(optionId) => void chooseOption(optionId)}
-              onSave={() => void perform('save')}
-              onApplyRuntime={() => void perform('apply')}
+              onSave={saveWorldConfig}
             />
           ) : (
             <>
@@ -527,12 +558,18 @@ function WorldConsole() {
         onOpenChange={setCreateProjectOpen}
         onCreate={createProject}
       />
+      {projectToRename ? (
+        <RenameProjectDialog
+          project={projectToRename}
+          busy={busy === 'rename'}
+          onOpenChange={(open) => {
+            if (!open) setProjectToRename(null);
+          }}
+          onRename={renameProject}
+        />
+      ) : null}
     </PageShell>
   );
-}
-
-function isHostedModel(model: string) {
-  return isFalVideoModel(model);
 }
 
 function worldToConfig(world: WorldSnapshot): WorldConfig {
@@ -562,6 +599,10 @@ function preferLatestRun(current: RunSnapshot | null, next: RunSnapshot): RunSna
     return current;
   }
   return next;
+}
+
+function isLiveRunState(state: RunSnapshot['state'] | null) {
+  return state === 'preparing' || state === 'running' || state === 'stopping';
 }
 
 export default WorldConsole;

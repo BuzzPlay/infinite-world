@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { X } from 'lucide-react';
 import type {
   GenerationSettings,
@@ -15,8 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { cn } from '@/lib/utils';
 import { LiveOutputView } from './live-output-view';
 import { PreviewCanvas, type RunAction } from './preview-panel';
-import { ProjectSettingsPanel } from './project-settings-panel';
-import type { GenerationModelOption } from './world-setup-form';
+import type { GenerationModelOption } from './model-options';
+import { RunSettingsDialog } from './run-settings-dialog';
 import { RunMetrics } from './run-metrics';
 import { SceneHistory } from './scene-history';
 import { GenerationHistory } from './generation-history';
@@ -34,15 +34,12 @@ interface WorldDashboardProps {
   notice: string | null;
   onDismissNotice: () => void;
   previewRef: RefObject<HTMLDivElement>;
-  onNameChange: (value: string) => void;
-  onPromptChange: (value: string) => void;
   onGenerationChange: (changes: Partial<GenerationSettings>) => void;
   visionModelOptions: GenerationModelOption[];
   videoModelOptions: GenerationModelOption[];
   onAction: (action: RunAction, output?: LiveOutputSettings) => void;
   onOptionSelect: (optionId: string) => void;
-  onSave: () => void;
-  onApplyRuntime: () => void;
+  onSave: (config: WorldConfig) => Promise<boolean>;
 }
 
 export function WorldDashboard({
@@ -55,28 +52,24 @@ export function WorldDashboard({
   notice,
   onDismissNotice,
   previewRef,
-  onNameChange,
-  onPromptChange,
   onGenerationChange,
   visionModelOptions,
   videoModelOptions,
   onAction,
   onOptionSelect,
   onSave,
-  onApplyRuntime,
 }: WorldDashboardProps) {
   const { t } = useTranslation();
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ sceneId: string; optionId: string } | null>(null);
+  const [runSettingsOpen, setRunSettingsOpen] = useState(false);
   const livePreviewRef = useRef<HTMLDivElement>(null);
   const { state: sidebarState } = useSidebar();
   const state: RunState = run?.state ?? 'created';
   const isRunning = state === 'running' || state === 'preparing';
   const isActive = isRunning || state === 'stopping';
   const currentScene = run?.currentScene ?? scenes[scenes.length - 1] ?? null;
-
-  useEffect(() => {
-    setSelectedOptionId(null);
-  }, [currentScene?.id]);
+  const selectedOptionId =
+    selection && selection.sceneId === currentScene?.id ? selection.optionId : null;
 
   return (
     <Tabs
@@ -134,10 +127,18 @@ export function WorldDashboard({
           previewRef={previewRef}
           selectedOptionId={selectedOptionId}
           onOptionSelect={(optionId) => {
-            setSelectedOptionId(optionId);
+            if (currentScene) setSelection({ sceneId: currentScene.id, optionId });
             onOptionSelect(optionId);
           }}
           onAction={onAction}
+          runModels={{
+            generation: draft.generation,
+            visionModelOptions,
+            videoModelOptions,
+            disabled: busy !== null || loading,
+            onGenerationChange,
+            onOpenSettings: () => setRunSettingsOpen(true),
+          }}
         />
       </TabsContent>
       <TabsContent value="live" className="absolute inset-0 m-0">
@@ -156,7 +157,7 @@ export function WorldDashboard({
           previewRef={livePreviewRef}
           selectedOptionId={selectedOptionId}
           onOptionSelect={(optionId) => {
-            setSelectedOptionId(optionId);
+            if (currentScene) setSelection({ sceneId: currentScene.id, optionId });
             onOptionSelect(optionId);
           }}
           onAction={onAction}
@@ -179,21 +180,18 @@ export function WorldDashboard({
             />
             <GenerationHistory records={run?.generationHistory ?? []} />
           </div>
-          <ProjectSettingsPanel
-            draft={draft}
-            busy={busy === 'save'}
-            onNameChange={onNameChange}
-            onPromptChange={onPromptChange}
-            onGenerationChange={onGenerationChange}
-            visionModelOptions={visionModelOptions}
-            videoModelOptions={videoModelOptions}
-            onSave={onSave}
-            onApplyRuntime={onApplyRuntime}
-            runtimeBusy={busy === 'apply'}
-            running={isRunning}
-          />
         </div>
       </TabsContent>
+      {runSettingsOpen ? (
+        <RunSettingsDialog
+          open
+          draft={draft}
+          busy={busy === 'save'}
+          running={isActive}
+          onOpenChange={setRunSettingsOpen}
+          onSave={onSave}
+        />
+      ) : null}
     </Tabs>
   );
 }

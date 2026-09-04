@@ -1,12 +1,14 @@
 import type { RefObject } from 'react';
 import { Maximize2, Play, RefreshCw, Square } from 'lucide-react';
-import type { RunState, SceneSnapshot } from '@infinite-world/api-contract';
+import type { GenerationSettings, RunState, SceneSnapshot } from '@infinite-world/api-contract';
 
 import { BranchChoicePanel } from './branch-choice-panel';
 import { Button } from '../ui/button';
 import { Loading } from '../ui/loading';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../../i18n/use-translation';
+import type { GenerationModelOption } from './model-options';
+import { RunModelControls } from './run-model-controls';
 
 export type RunAction = 'start' | 'stop' | 'restart';
 
@@ -23,6 +25,16 @@ interface PreviewCanvasProps {
   onOptionSelect: (optionId: string) => void;
   onAction: (action: RunAction) => void;
   showRunCta?: boolean;
+  runModels?: RunModelControlsConfig;
+}
+
+interface RunModelControlsConfig {
+  generation: GenerationSettings;
+  visionModelOptions: GenerationModelOption[];
+  videoModelOptions: GenerationModelOption[];
+  disabled: boolean;
+  onGenerationChange: (changes: Partial<GenerationSettings>) => void;
+  onOpenSettings: () => void;
 }
 
 export function PreviewCanvas({
@@ -38,6 +50,7 @@ export function PreviewCanvas({
   onOptionSelect,
   onAction,
   showRunCta = true,
+  runModels,
 }: PreviewCanvasProps) {
   const { t } = useTranslation();
   const previewUrl = currentScene?.previewUrl.trim() ?? '';
@@ -159,6 +172,8 @@ export function PreviewCanvas({
         </Button>
       </div>
 
+      <RunModelControlsOverlay isActive={isActive} config={runModels} />
+
       <div
         className={cn(
           'pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6',
@@ -170,6 +185,24 @@ export function PreviewCanvas({
           selectedOptionId={selectedOptionId}
           onSelect={(option) => onOptionSelect(option.id)}
         />
+      </div>
+    </div>
+  );
+}
+
+function RunModelControlsOverlay({
+  isActive,
+  config,
+}: {
+  isActive: boolean;
+  config?: RunModelControlsConfig;
+}) {
+  if (isActive || !config) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4 sm:bottom-6 sm:px-6">
+      <div className="pointer-events-auto w-full max-w-xl">
+        <RunModelControls {...config} />
       </div>
     </div>
   );

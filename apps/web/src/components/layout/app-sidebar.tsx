@@ -1,4 +1,4 @@
-import { DotsThreeIcon } from '@phosphor-icons/react';
+import { DotsThreeIcon, PencilSimpleIcon } from '@phosphor-icons/react';
 import { FilePlus2, Settings2, Sparkles } from 'lucide-react';
 import { findModel } from '@infinite-world/api-contract/model-catalog';
 
@@ -6,19 +6,26 @@ import type { ProjectRecord } from '../projects/project-types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import Hint from '../ui/hint';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarFooter,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from '../ui/sidebar';
 import { useTranslation } from '../../i18n/use-translation';
 
@@ -27,6 +34,7 @@ interface AppSidebarProps {
   activeProjectId: string | null;
   onCreateProject: () => void;
   onProjectSelect: (project: ProjectRecord) => void;
+  onProjectRename: (project: ProjectRecord) => void;
   onOpenSettings: () => void;
   onOpenWorkspace: () => void;
   settingsActive: boolean;
@@ -37,11 +45,13 @@ export function AppSidebar({
   activeProjectId,
   onCreateProject,
   onProjectSelect,
+  onProjectRename,
   onOpenSettings,
   onOpenWorkspace,
   settingsActive,
 }: AppSidebarProps) {
   const { t } = useTranslation();
+  const { holdPeek } = useSidebar();
 
   return (
     <Sidebar
@@ -108,13 +118,6 @@ export function AppSidebar({
 
           <SidebarGroup className="py-0">
             <SidebarGroupLabel>{t('common.projects')}</SidebarGroupLabel>
-            <SidebarGroupAction
-              type="button"
-              title={t('common.projectOptions')}
-              aria-label={t('common.projectOptions')}
-            >
-              <DotsThreeIcon size={16} aria-hidden="true" />
-            </SidebarGroupAction>
             <SidebarGroupContent>
               <SidebarMenu>
                 {projects.length ? (
@@ -149,6 +152,32 @@ export function AppSidebar({
                           </span>
                         </span>
                       </SidebarMenuButton>
+                      <DropdownMenu onOpenChange={holdPeek}>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuAction
+                            type="button"
+                            showOnHover
+                            className={
+                              activeProjectId === project.id
+                                ? 'opacity-100 md:opacity-100'
+                                : undefined
+                            }
+                            title={t('common.projectOptions')}
+                            aria-label={t('common.projectOptions')}
+                          >
+                            <DotsThreeIcon size={16} aria-hidden="true" />
+                          </SidebarMenuAction>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start" className="w-44">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onSelect={() => onProjectRename(project)}
+                          >
+                            <PencilSimpleIcon aria-hidden="true" />
+                            {t('common.rename')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </SidebarMenuItem>
                   ))
                 ) : (
