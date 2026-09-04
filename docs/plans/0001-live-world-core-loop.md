@@ -13,7 +13,7 @@ Configure world -> start run -> generate scenes -> preview locally -> stop run
 - World configuration with prompt, optional initial image, and generation settings.
 - Run lifecycle and local persistence in `apps/api/`.
 - Commands, responses, and run events in `packages/api-contract/`.
-- Provider adapters for demo, hosted, and optional local generation.
+- Provider adapters for hosted generation.
 - Local browser preview and run controls in `apps/web/`.
 - Error propagation and basic status metrics.
 

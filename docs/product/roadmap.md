@@ -25,7 +25,7 @@ Result: a user can configure a world, run continuous generation, preview it loca
 ## Stage 2: Generation Controls
 
 - Add a generation backend adapter.
-- Add local and hosted backend configurations as separate implementations.
+- Add provider configurations as separate implementations.
 - Add image-to-video input, character references, generation modes, and backend-specific parameters.
 - Add prompt generation modes and editable system prompts.
 - Add text overlays and media metadata.

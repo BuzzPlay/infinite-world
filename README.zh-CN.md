@@ -16,6 +16,8 @@
 
 Infinite World 是一个开源项目，希望通过多模态 AI 理解和模拟世界，再通过交互影响世界的变化。文本、图片、视频、声音和外部事件都可以成为输入，世界会将这些输入转化为状态、规则和后续行动。
 
+[FAL](http://fal.ai/) 对 H3 推理效率的优化，让我们看到了一种更有趣的可能：用前沿 LLM 和多模态 AI 构建可以持续发展的互动内容系统，让人们参与塑造变化中的世界，并探索更多交互方式。Infinite World 希望从这里开始，持续探索这个方向。
+
 世界运行过程中会保留场景、选择、状态变化和分支。人们可以在本地探索世界，影响接下来发生的事情，并分享由此产生的体验。
 
 ## 为什么是 Infinite World
@@ -100,11 +102,9 @@ pnpm dev:api
 pnpm dev:web
 ```
 
-打开[http://localhost:5173](http://localhost:5173)。当前本地工作流使用内置演示生成器，首次运行不需要配置模型服务商密钥。
+打开[http://localhost:5173](http://localhost:5173)。选择托管模型前，请先在 Settings 中配置对应的服务密钥。没有配置密钥时，对应能力会保持为 `none`。
 
 开发环境下 Web 应用默认连接 `http://127.0.0.1:4000` 的 API。Web 和 API 使用不同域名或端口部署时，设置 `NEXT_PUBLIC_API_URL`。
-
-托管生成是可选的。启动 API 前设置 `FAL_API_KEY`（或 `FAL_KEY`），然后在 Web 控制台选择托管模型。`fal-ltx-video` 根据文本生成，`fal-ltx-2.3` 需要填写初始图片 URL。密钥只由本地 API 进程读取。
 
 ## 参与贡献
 
@@ -115,3 +115,7 @@ pnpm dev:web
 ## 参考
 
 - [infinite-tv](https://github.com/alex-remade/infinite-tv)
+- [fal.live](https://fal.live/)
+- [H3 World Action Demo](https://huggingface.co/spaces/hugging-apps/h3-world-action-demo)
+- [Odin Lovis](https://x.com/OdinLovis/status/2095644474055782725)
+- [Diiverge](https://www.diiverge.co/)

@@ -14,7 +14,6 @@ Fastify API ---- runtime state and persistence
       +---- provider SDKs
       +---- Twitch chat adapter
       +---- FFmpeg output process
-      +---- optional local model runner
 ```
 
 - `apps/web/` owns controls, preview playback, run status, metrics, and history views.
@@ -22,11 +21,10 @@ Fastify API ---- runtime state and persistence
 - `apps/api/src/services/` owns world, run, and provider-settings use cases.
 - `apps/api/src/runtime/` owns in-memory state and run orchestration.
 - `apps/api/src/domain/` owns generation rules, run records, and public response conversion.
-- `apps/api/src/providers/ai/` owns AI and local model adapters.
+- `apps/api/src/providers/ai/` owns hosted AI and prompt adapters.
 - `apps/api/src/live/` owns chat integrations and live output processes.
 - `apps/api/src/storage/` owns local persistence.
 - `packages/api-contract/` owns request, response, and real-time event shapes.
-- `runners/` owns the GPU-side process when a local model is selected.
 
 ## Run States
 
@@ -62,6 +60,5 @@ Created -> Preparing -> Running -> Stopping -> Stopped
 - Provider credentials stay inside `apps/api` and are never returned to the Web application.
 - Provider-specific request objects stay inside `apps/api/src/providers/ai/`.
 - FFmpeg stays behind `apps/api/src/live/output/`.
-- Local model execution stays behind the NDJSON process boundary.
 - Run state and persistence stay separate from HTTP route registration.
 - Provider failures become API errors and real-time run events before reaching the Web application.

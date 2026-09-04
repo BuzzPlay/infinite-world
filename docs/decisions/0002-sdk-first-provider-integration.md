@@ -11,7 +11,6 @@ Generation and media outputs need provider-specific authentication, request type
 - Use the FAL client for hosted video generation and the OpenAI client for compatible prompt providers.
 - Use `tmi.js` for Twitch chat instead of maintaining an IRC client in the API.
 - Keep custom request types local to an adapter when the SDK does not expose a needed field.
-- Use the documented process protocol for the optional local Python runner.
 - Keep provider keys in local API storage and return only configured flags to the Web application.
 
 ## Consequences

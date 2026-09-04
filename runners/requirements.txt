@@ -1,9 +1,0 @@
-torch>=2.7
-torchvision>=0.22
-torchaudio>=2.7
-diffusers>=0.39,<0.41
-transformers>=4.47,<4.52
-accelerate>=1.4
-huggingface-hub>=0.30,<1.0
-safetensors>=0.4
-pillow>=10

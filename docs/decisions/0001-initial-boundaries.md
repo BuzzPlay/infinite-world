@@ -6,7 +6,7 @@ Accepted for the initial implementation.
 
 ## Decision
 
-Infinite World uses a small workspace with a React + Next.js Web application, a Fastify TypeScript API, an optional local model runner, and a shared API contract package.
+Infinite World uses a small workspace with a React + Next.js Web application, a Fastify TypeScript API, hosted provider adapters, and a shared API contract package.
 
 ```text
 Web (React + Next.js)
@@ -17,7 +17,6 @@ Fastify API ---- local state and runtime
         |
         +---- provider SDKs and chat adapters
         +---- FFmpeg output
-        +---- optional Python runner
 ```
 
 ## Reasons
@@ -30,4 +29,4 @@ Fastify API ---- local state and runtime
 
 ## Consequences
 
-The first implementation contains a local Web experience, API routes, a persistent world run state, and a demo media generator. Hosted providers, chat, local inference, and output processes can evolve behind their adapters without changing the Web contract.
+The first implementation contains a local Web experience, API routes, persistent world run state, provider adapters, and live output boundaries. Hosted providers, chat, and output processes can evolve behind their adapters without changing the Web contract.

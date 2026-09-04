@@ -8,7 +8,6 @@ This document defines where new code belongs and which boundaries it may cross.
 apps/web/                 browser application
 apps/api/                 local API and runtime service
 packages/api-contract/    requests, responses, and real-time events
-runners/                  optional local model processes
 docs/                     product, architecture, decisions, and plans
 ```
 
@@ -40,7 +39,7 @@ src/routes/                HTTP, SSE, and WebSocket registration
 src/services/              world, run, and settings use cases
 src/domain/                pure rules, normalization, and public conversion
 src/runtime/               in-memory state and long-running orchestration
-src/providers/ai/          hosted, local, and prompt-generation adapters
+src/providers/ai/          hosted model and prompt-generation adapters
 src/live/chat/             chat platform integrations
 src/live/output/           FFmpeg and other live output processes
 src/storage/               persistence implementations
@@ -107,7 +106,7 @@ Do not create a folder for one small helper, a single route, or a file that only
 
 Current examples:
 
-- `providers/ai/` separates model and prompt adapters from other API code and already contains several implementations.
+- `providers/ai/` separates model and prompt adapters from other API code.
 - `live/chat/` and `live/output/` separate chat connections from publishing processes because they have different dependencies and lifecycles.
 - `services/` stays flat while it contains only a few related use cases; it can become `services/worlds/`, `services/runs/`, and similar areas once each area has enough files or a distinct workflow.
 - A new platform adapter belongs in `live/chat/` or `live/output/`; it does not create a new top-level `platforms/` directory.

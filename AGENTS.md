@@ -13,14 +13,13 @@ Keep new product behavior, API handlers, media processing, and UI changes behind
 - `apps/web/` is the browser application. Use React and Next.js with the App Router under `src/app/`.
 - `apps/api/` owns the Fastify service, API routes, runtime state, AI adapters, live integrations, and output processes.
 - `packages/api-contract/` owns stable request, response, and real-time event shapes.
-- `runners/` contains optional local model adapters that communicate with the API through NDJSON.
 - `docs/product/` records product concepts and user workflows.
 - `docs/architecture/` records system structure, protocols, and data flow.
 - `docs/decisions/` records decisions that affect more than one boundary.
 - `docs/plans/` records short-lived implementation plans.
 - `docs/development-log.md` records chronological progress.
 
-Desktop packaging is out of scope for the initial structure. Do not create a desktop app directory yet.
+Desktop packaging is out of scope for the current structure. Do not create a desktop app directory yet.
 
 ## UI Work
 

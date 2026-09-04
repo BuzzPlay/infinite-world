@@ -17,7 +17,7 @@ routes       HTTP, SSE, and WebSocket registration
 services     world, run, and provider-settings use cases
 domain       generation rules, run records, and public responses
 runtime      in-memory state and runtime orchestration
-providers/ai AI, LLM, and local model adapters
+providers/ai AI and prompt-generation adapters
 live         chat integrations and live output processes
 storage      local state file persistence
 ```
@@ -52,6 +52,6 @@ The WebRTC route is currently a signaling placeholder. It accepts a WebSocket co
 
 Worlds, runs, provider settings, and chat settings are persisted in `~/.infinite-world/state.json`. Set `INFINITE_WORLD_DATA_DIR` or `INFINITE_WORLD_DATA_FILE` to change the location. Secrets are stored locally and never included in API snapshots.
 
-The default model is the built-in demo generator. Hosted models use the FAL client and require `FAL_API_KEY` or `FAL_KEY`. Local models use `INFINITE_WORLD_LOCAL_GENERATOR` and the NDJSON adapter in `runners/`.
+World configuration stores a separate model for vision and video. Vision models use the configured Google key; video models use the FAL client and the configured FAL key. A missing provider key leaves that capability as `none`.
 
 An RTMP run starts FFmpeg for generated video and replaces the input as new scenes arrive. Set `INFINITE_WORLD_FFMPEG_BIN` when FFmpeg is not on `PATH`. Browser output is kept as a separate signaling path so it can be replaced by a native transport later.

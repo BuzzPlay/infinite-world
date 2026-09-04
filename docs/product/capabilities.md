@@ -14,7 +14,7 @@ This document defines the capability baseline currently supported by the local w
 - Generate the first scene from the world configuration.
 - Generate consecutive scenes from the latest scene, current world state, and recent generation context.
 - Create prompts from the world state, selected directions, and recent scene context.
-- Support local and hosted generation backends behind one media interface.
+- Support hosted generation through provider adapters.
 - Support image-to-video input and character references when the selected backend provides them.
 - Track the run state, scene count, prompt history, timing, and errors.
 

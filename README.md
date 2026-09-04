@@ -16,6 +16,8 @@
 
 Infinite World is an open-source project for using multimodal AI to understand and simulate worlds, then influence how they change through interaction. Text, images, video, audio, and external events can become inputs. The world turns them into state, rules, and possible next actions.
 
+[FAL](http://fal.ai/)'s work on H3 inference optimization points to a broader possibility: an interactive content system built with frontier LLMs and multimodal AI, where people can shape what happens and discover more interesting ways to interact with a changing world. Infinite World is an open-source exploration of that direction.
+
 Each world keeps its scenes, choices, state changes, and branches as it runs. People can explore it locally, affect what happens, and share the resulting experience.
 
 ## Why Infinite World
@@ -100,11 +102,9 @@ Start the Web application in another terminal:
 pnpm dev:web
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The local workflow uses the built-in demo generator, so no provider key is required for the first run.
+Open [http://localhost:5173](http://localhost:5173). Configure provider keys in Settings before selecting hosted models. If a key is not configured, that capability remains `none`.
 
 The Web app uses the local API at `http://127.0.0.1:4000` during development. Set `NEXT_PUBLIC_API_URL` when the Web app and API are served from different origins.
-
-Hosted generation is optional. Set `FAL_API_KEY` (or `FAL_KEY`) before starting the API, then select a hosted model in the Web console. `fal-ltx-video` generates from text; `fal-ltx-2.3` requires an initial image URL. Provider keys stay in the local API process.
 
 ## Contributing
 
@@ -115,3 +115,7 @@ Issues, experiments, documentation improvements, and implementation contribution
 ## Reference
 
 - [infinite-tv](https://github.com/alex-remade/infinite-tv)
+- [fal.live](https://fal.live/)
+- [H3 World Action Demo](https://huggingface.co/spaces/hugging-apps/h3-world-action-demo)
+- [Odin Lovis](https://x.com/OdinLovis/status/2095644474055782725)
+- [Diiverge](https://www.diiverge.co/)
