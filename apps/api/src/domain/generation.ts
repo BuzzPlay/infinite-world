@@ -1,18 +1,18 @@
 import { DEFAULT_GENERATION } from '@infinite-world/api-contract';
+import {
+  DEFAULT_VISION_MODEL,
+  DEFAULT_VIDEO_MODEL,
+  isGoogleVisionModel,
+  isFalVideoModel,
+  MODEL_CATALOG,
+} from '@infinite-world/api-contract/model-catalog';
 import type { GenerationSettings, WorldConfig, WorldSnapshot } from '@infinite-world/api-contract';
 
 import { ApiError } from '../shared/errors.js';
 import type { ProviderState, RunConfigInput, RunStartInput } from '../types.js';
 
-export const generationModels = new Set([
-  'demo-continuous',
-  'fal-ltx-video',
-  'fal-ltx-2.3',
-  'ltx-2.3',
-  'ltxv1',
-  'ltx-2.3-local',
-  'ltx-2.3-condition',
-]);
+export const generationModels = new Set<string>(MODEL_CATALOG.video.map((model) => model.id));
+export const visionModels = new Set<string>(MODEL_CATALOG.vision.map((model) => model.id));
 
 export const generationModes = new Set(['regular', 'nightmare', 'cohesive', 'visual', 'chaotic']);
 export const stylePresets = new Set(['cohesive', 'chaotic', 'nightmare', 'custom']);
@@ -29,9 +29,29 @@ export function makeWorld(
   const prompt = input.prompt?.trim();
   if (!name) throw new ApiError(400, 'invalid_world', 'name is required');
   if (!prompt) throw new ApiError(400, 'invalid_world', 'prompt is required');
-  const generation = normalizeGeneration({ ...DEFAULT_GENERATION, ...(input.generation ?? {}) });
-  if (!generation.model) generation.model = provider.defaultModel;
+  const generationInput = input.generation ?? {};
+  const generation = normalizeGeneration(generationInput);
+  if (!generationInput.visionModel?.trim()) {
+    generation.visionModel = provider.googleApiKey ? DEFAULT_VISION_MODEL : 'none';
+  }
+  if (!generationInput.model?.trim()) {
+    generation.model = provider.falApiKey ? DEFAULT_VIDEO_MODEL : 'none';
+  }
   validateGeneration(generation);
+  if (isGoogleVisionModel(generation.visionModel) && !provider.googleApiKey) {
+    throw new ApiError(
+      400,
+      'missing_vision_provider_key',
+      'configure a Google API key before selecting hosted vision',
+    );
+  }
+  if (isHostedGenerationModel(generation.model) && !provider.falApiKey) {
+    throw new ApiError(
+      400,
+      'missing_provider_key',
+      'configure a provider key before selecting hosted generation',
+    );
+  }
   return { id, name, prompt, generation, createdAt };
 }
 
@@ -41,6 +61,8 @@ export function normalizeGeneration(
   return {
     ...DEFAULT_GENERATION,
     ...(input ?? {}),
+    model: input?.model ?? DEFAULT_GENERATION.model,
+    visionModel: input?.visionModel ?? DEFAULT_GENERATION.visionModel,
     resolution: input?.resolution ?? null,
     aspectRatio: input?.aspectRatio ?? null,
     initialImageUrl: input?.initialImageUrl ?? null,
@@ -57,6 +79,7 @@ export function applyGenerationInput(
   const next = normalizeGeneration({
     ...base,
     ...(input.model !== undefined ? { model: input.model } : {}),
+    ...(input.visionModel !== undefined ? { visionModel: input.visionModel } : {}),
     ...(input.mode !== undefined ? { mode: input.mode } : {}),
     ...(input.width !== undefined ? { width: input.width } : {}),
     ...(input.height !== undefined ? { height: input.height } : {}),
@@ -88,6 +111,12 @@ export function applyGenerationInput(
 export function validateGeneration(generation: GenerationSettings) {
   if (!generationModels.has(generation.model))
     throw new ApiError(400, 'invalid_model', `unsupported model: ${generation.model}`);
+  if (!visionModels.has(generation.visionModel))
+    throw new ApiError(
+      400,
+      'invalid_vision_model',
+      `unsupported vision model: ${generation.visionModel}`,
+    );
   if (!generationModes.has(generation.mode))
     throw new ApiError(400, 'invalid_mode', `unsupported generation mode: ${generation.mode}`);
   if (!stylePresets.has(generation.stylePreset))
@@ -144,13 +173,12 @@ export function validateGeneration(generation: GenerationSettings) {
     );
 }
 
-export function validateTemperature(value: number) {
-  if (!Number.isFinite(value) || value < 0 || value > 2)
-    throw new ApiError(400, 'invalid_llm_temperature', 'llmTemperature must be between 0 and 2');
+export function isHostedGenerationModel(model: string) {
+  return isFalVideoModel(model);
 }
 
-export function isHostedGenerationModel(model: string) {
-  return model === 'fal-ltx-video' || model === 'fal-ltx-2.3' || model === 'ltx-2.3';
+export function isHostedVisionModel(model: string) {
+  return isGoogleVisionModel(model);
 }
 
 export function normalizeStoredWorld(world: WorldSnapshot): WorldSnapshot {

@@ -1,37 +1,30 @@
 import { fal } from '@fal-ai/client';
+import { findModel } from '@infinite-world/api-contract/model-catalog';
 
 import type { GenerationInput, GeneratedScene, ProviderState } from '../../types.js';
-import { DemoGenerator } from './demo.js';
 import { PromptProvider } from './llm.js';
-import { LocalRunnerGenerator } from './local.js';
 
 export class VideoGenerator {
-  constructor(
-    private readonly prompts = new PromptProvider(),
-    private readonly demo = new DemoGenerator(),
-    private readonly local = new LocalRunnerGenerator(),
-  ) {}
+  constructor(private readonly prompts = new PromptProvider()) {}
 
   async generate(input: GenerationInput, settings: ProviderState): Promise<GeneratedScene> {
-    if (input.generation.model === 'demo-continuous') return this.demo.generate(input);
     const prompt = await this.prompts.generate(input, settings);
-    if (isLocalModel(input.generation.model)) return this.local.generate(input, prompt);
-    return this.generateHosted(input, settings, prompt);
+    return this.generateHosted(input, settings, prompt, input.generation.model);
   }
 
   private async generateHosted(
     input: GenerationInput,
     settings: ProviderState,
     prompt: { prompt: string; contextSummary: string; selectedComment: string | null },
+    modelId: string,
   ) {
     if (!settings.falApiKey) throw new Error('configure a provider key before hosted generation');
+    const model = findModel('video', modelId);
+    if (model?.provider !== 'fal' || !model.modelId)
+      throw new Error(`unsupported video model: ${input.generation.model}`);
     fal.config({ credentials: settings.falApiKey });
-    const model =
-      input.generation.model === 'fal-ltx-2.3' || input.generation.model === 'ltx-2.3'
-        ? 'fal-ai/ltx-2.3/image-to-video/fast'
-        : 'fal-ai/ltx-video';
     const started = performance.now();
-    const result = await fal.subscribe(model, {
+    const result = await fal.subscribe(model.modelId, {
       input: {
         prompt: prompt.prompt,
         negative_prompt: input.generation.negativePrompt,
@@ -62,8 +55,4 @@ export class VideoGenerator {
       generationLatencyMs: Math.max(1, Math.round(performance.now() - started)),
     };
   }
-}
-
-function isLocalModel(model: string) {
-  return model === 'ltxv1' || model === 'ltx-2.3-local' || model === 'ltx-2.3-condition';
 }

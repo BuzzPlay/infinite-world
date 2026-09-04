@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./model-catalog": "./src/model-catalog.ts"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

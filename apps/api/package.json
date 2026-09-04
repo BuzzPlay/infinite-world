@@ -10,13 +10,15 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@infinite-world/api-contract": "workspace:*",
+    "@ai-sdk/google": "4.0.63",
     "@fal-ai/client": "^1.9.0",
     "@fastify/cors": "^11.0.1",
     "@fastify/websocket": "^11.2.0",
+    "@infinite-world/api-contract": "workspace:*",
+    "ai": "7.0.91",
     "fastify": "^5.4.0",
-    "openai": "^5.12.2",
-    "tmi.js": "^1.8.5"
+    "tmi.js": "^1.8.5",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

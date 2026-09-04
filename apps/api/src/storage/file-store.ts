@@ -38,14 +38,12 @@ export function saveState(state: PersistedState) {
 export function defaultProviderState(): ProviderState {
   return {
     falApiKey: nonEmpty(process.env.FAL_API_KEY) ?? nonEmpty(process.env.FAL_KEY),
-    openaiApiKey: nonEmpty(process.env.OPENAI_API_KEY),
-    groqApiKey: nonEmpty(process.env.GROQ_API_KEY),
+    googleApiKey:
+      nonEmpty(process.env.GOOGLE_GENERATIVE_AI_API_KEY) ??
+      nonEmpty(process.env.GOOGLE_API_KEY) ??
+      nonEmpty(process.env.GEMINI_API_KEY),
     twitchStreamKey: nonEmpty(process.env.TWITCH_STREAM_KEY),
     twitchOauthToken: nonEmpty(process.env.TWITCH_OAUTH_TOKEN),
-    defaultModel: 'demo-continuous',
-    llmTextModel: 'google/gemini-2.5-flash',
-    llmVisionModel: 'google/gemini-2.5-flash',
-    llmTemperature: 0.7,
     defaultStylePreset: 'cohesive',
     twitchChannel: process.env.TWITCH_CHANNEL?.trim() ?? '',
     twitchUsername: process.env.TWITCH_USERNAME?.trim() ?? '',

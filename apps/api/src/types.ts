@@ -9,17 +9,12 @@ import type {
 
 export interface ProviderSecrets {
   falApiKey: string | null;
-  openaiApiKey: string | null;
-  groqApiKey: string | null;
+  googleApiKey: string | null;
   twitchStreamKey: string | null;
   twitchOauthToken: string | null;
 }
 
 export interface ProviderState extends ProviderSecrets {
-  defaultModel: string;
-  llmTextModel: string;
-  llmVisionModel: string;
-  llmTemperature: number;
   defaultStylePreset: ProviderSettings['defaultStylePreset'];
   twitchChannel: string;
   twitchUsername: string;
@@ -36,15 +31,14 @@ export interface PersistedState {
   worlds: WorldSnapshot[];
   activeWorldId: string | null;
   runs: StoredRun[];
-  provider: Partial<ProviderState> & {
-    providerApiKey?: string | null;
-  };
+  provider: Partial<ProviderState>;
 }
 
 export interface RunStartInput {
   output?: LiveOutputSettings;
   outputMode?: LiveOutputSettings['mode'];
   model?: string;
+  visionModel?: string;
   initialPrompt?: string;
   initialImageUrl?: string | null;
   negativePrompt?: string;
@@ -67,12 +61,9 @@ export interface RunStartInput {
   enableAudio?: boolean;
   stylePreset?: GenerationSettings['stylePreset'];
   characterRefs?: GenerationSettings['characterRefs'];
-  llmTemperature?: number;
 }
 
-export interface RunConfigInput extends Partial<GenerationSettings> {
-  llmTemperature?: number;
-}
+export type RunConfigInput = Partial<GenerationSettings>;
 
 export interface GenerationInput {
   world: WorldSnapshot;

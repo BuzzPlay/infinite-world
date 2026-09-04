@@ -6,7 +6,6 @@ export const config = {
   port: numberFromEnv('INFINITE_WORLD_PORT', 4000, 1, 65_535),
   dataFile: dataFilePath(),
   ffmpegBinary: process.env.INFINITE_WORLD_FFMPEG_BIN?.trim() || 'ffmpeg',
-  localGenerator: process.env.INFINITE_WORLD_LOCAL_GENERATOR?.trim() || null,
 };
 
 function numberFromEnv(name: string, fallback: number, min: number, max: number) {

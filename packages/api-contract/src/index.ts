@@ -11,7 +11,9 @@ export interface CharacterReference {
 }
 
 export interface GenerationSettings {
+  /** The video model. Kept as `model` for compatibility with existing worlds. */
   model: string;
+  visionModel: string;
   mode: GenerationMode;
   width: number;
   height: number;
@@ -119,6 +121,7 @@ export interface GenerationHistorySnapshot {
   negativePrompt: string;
   initialImageUrl: string | null;
   model: string;
+  visionModel?: string;
   mode: GenerationMode;
   width: number;
   height: number;
@@ -146,34 +149,24 @@ export interface CreateWorldRequest {
 
 export interface ProviderSettings {
   falApiKeyConfigured: boolean;
-  defaultModel: string;
-  llmTextModel: string;
-  llmVisionModel: string;
-  llmTemperature: number;
+  googleApiKeyConfigured: boolean;
   defaultStylePreset: StylePreset;
   twitchChannel: string;
   twitchUsername: string;
   chatLookback: number;
   twitchStreamKeyConfigured: boolean;
   twitchOauthTokenConfigured: boolean;
-  openaiApiKeyConfigured: boolean;
-  groqApiKeyConfigured: boolean;
 }
 
 export interface UpdateProviderSettingsRequest {
   falApiKey?: string;
-  defaultModel: string;
-  llmTextModel: string;
-  llmVisionModel: string;
-  llmTemperature: number;
+  googleApiKey?: string;
   defaultStylePreset: StylePreset;
   twitchChannel: string;
   twitchUsername: string;
   chatLookback: number;
   twitchStreamKey?: string;
   twitchOauthToken?: string;
-  openaiApiKey?: string;
-  groqApiKey?: string;
 }
 
 export type ProviderSettingsResponse = ProviderSettings;
@@ -221,6 +214,7 @@ export interface StartRunRequest {
   output?: LiveOutputSettings;
   outputMode?: LiveOutputMode;
   model?: string;
+  visionModel?: string;
   initialPrompt?: string;
   initialImageUrl?: string | null;
   negativePrompt?: string;
@@ -243,10 +237,11 @@ export interface StartRunRequest {
   enableAudio?: boolean;
   stylePreset?: StylePreset;
   characterRefs?: CharacterReference[];
-  llmTemperature?: number;
 }
 
 export interface UpdateRunConfigRequest {
+  model?: string;
+  visionModel?: string;
   mode?: GenerationMode;
   width?: number;
   height?: number;
@@ -268,7 +263,6 @@ export interface UpdateRunConfigRequest {
   enableAudio?: boolean;
   stylePreset?: StylePreset;
   characterRefs?: CharacterReference[] | null;
-  llmTemperature?: number;
 }
 
 export interface ChooseSceneOptionRequest {
@@ -305,7 +299,8 @@ export type RealtimeEvent =
   | { type: 'run.error'; run: RunSnapshot; message: string };
 
 export const DEFAULT_GENERATION: GenerationSettings = {
-  model: 'demo-continuous',
+  model: 'none',
+  visionModel: 'none',
   mode: 'regular',
   width: 512,
   height: 384,

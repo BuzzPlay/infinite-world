@@ -127,6 +127,7 @@ export function appendScene(run: StoredRun, scene: GeneratedScene, generation: G
     negativePrompt: generation.negativePrompt,
     initialImageUrl: generation.initialImageUrl,
     model: generation.model,
+    visionModel: generation.visionModel,
     mode: generation.mode,
     width: generation.width,
     height: generation.height,

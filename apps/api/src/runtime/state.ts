@@ -15,7 +15,33 @@ export class RuntimeState {
     this.state = persisted;
     for (const world of persisted.worlds) this.worlds.set(world.id, normalizeStoredWorld(world));
     for (const run of persisted.runs) this.runs.set(run.worldId, normalizeStoredRun(run));
-    this.provider = { ...defaultProviderState(), ...persisted.provider };
+    const savedProvider = persisted.provider;
+    const defaults = defaultProviderState();
+    this.provider = {
+      ...defaults,
+      ...(savedProvider.falApiKey !== undefined ? { falApiKey: savedProvider.falApiKey } : {}),
+      ...(savedProvider.googleApiKey !== undefined
+        ? { googleApiKey: savedProvider.googleApiKey }
+        : {}),
+      ...(savedProvider.twitchStreamKey !== undefined
+        ? { twitchStreamKey: savedProvider.twitchStreamKey }
+        : {}),
+      ...(savedProvider.twitchOauthToken !== undefined
+        ? { twitchOauthToken: savedProvider.twitchOauthToken }
+        : {}),
+      ...(savedProvider.defaultStylePreset !== undefined
+        ? { defaultStylePreset: savedProvider.defaultStylePreset }
+        : {}),
+      ...(savedProvider.twitchChannel !== undefined
+        ? { twitchChannel: savedProvider.twitchChannel }
+        : {}),
+      ...(savedProvider.twitchUsername !== undefined
+        ? { twitchUsername: savedProvider.twitchUsername }
+        : {}),
+      ...(savedProvider.chatLookback !== undefined
+        ? { chatLookback: savedProvider.chatLookback }
+        : {}),
+    };
     this.state.provider = this.provider;
     if (this.state.activeWorldId && !this.worlds.has(this.state.activeWorldId)) {
       this.state.activeWorldId = persisted.worlds[0]?.id ?? null;

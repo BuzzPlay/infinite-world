@@ -7,7 +7,7 @@ import type {
 import {
   applyGenerationInput,
   isHostedGenerationModel,
-  validateTemperature,
+  isHostedVisionModel,
 } from '../domain/generation.js';
 import {
   appendScene,
@@ -20,7 +20,7 @@ import {
 } from '../domain/run.js';
 import { ApiError } from '../shared/errors.js';
 import type { RuntimeState } from '../runtime/state.js';
-import type { GeneratedScene, RunConfigInput, RunStartInput, StoredRun } from '../types.js';
+import type { GeneratedScene, RunConfigInput, RunStartInput } from '../types.js';
 
 export class RunService {
   constructor(private readonly state: RuntimeState) {}
@@ -36,6 +36,9 @@ export class RunService {
     const run = this.state.getRun(worldId) ?? newRun(worldId);
     if (isActive(run)) throw new ApiError(409, 'invalid_state', 'the project is already running');
     const generation = applyGenerationInput(world.generation, input);
+    if (generation.model === 'none') {
+      throw new ApiError(400, 'missing_video_model', 'select a video model before starting');
+    }
     if (isHostedGenerationModel(generation.model) && !this.state.provider.falApiKey) {
       throw new ApiError(
         400,
@@ -43,7 +46,13 @@ export class RunService {
         'configure a provider key before starting hosted generation',
       );
     }
-    if (input.llmTemperature !== undefined) validateTemperature(input.llmTemperature);
+    if (isHostedVisionModel(generation.visionModel) && !this.state.provider.googleApiKey) {
+      throw new ApiError(
+        400,
+        'missing_vision_provider_key',
+        'configure a Google API key before starting hosted vision',
+      );
+    }
     const nextWorld = { ...world, generation };
     this.state.setWorld(worldId, nextWorld);
     const nextRun = newRun(worldId);
@@ -139,6 +148,20 @@ export class RunService {
         'stop the current run before applying project settings',
       );
     const generation = applyGenerationInput(world.generation, input);
+    if (isHostedGenerationModel(generation.model) && !this.state.provider.falApiKey) {
+      throw new ApiError(
+        400,
+        'missing_provider_key',
+        'configure a provider key before selecting hosted generation',
+      );
+    }
+    if (isHostedVisionModel(generation.visionModel) && !this.state.provider.googleApiKey) {
+      throw new ApiError(
+        400,
+        'missing_vision_provider_key',
+        'configure a Google API key before selecting hosted vision',
+      );
+    }
     this.state.setWorld(worldId, { ...world, generation });
     this.state.persist();
     return clone(run);
