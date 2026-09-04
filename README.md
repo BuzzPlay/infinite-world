@@ -1,128 +1,153 @@
 <div align="center">
 
+<img src="apps/web/public/logo.svg" alt="Infinite World logo" width="88" />
+
 # Infinite World
 
-**An open-source system for using multimodal AI to understand, simulate, and interact with virtual worlds.**
+**Build interactive worlds that keep evolving with multimodal LLMs.**
 
-**Set a world in motion. Shape what happens next. Explore where it leads.**
+Understand a world, simulate how it changes, and interact with what happens next.
 
-[Documentation](docs/README.md) · [Product](docs/product/README.md) · [Architecture](docs/architecture/README.md) · [Roadmap](#roadmap) · [Contributing](#contributing)
+[Quick Start](#quick-start) · [Documentation](docs/README.md) · [Architecture](docs/architecture/README.md) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
-[简体中文](README.zh-CN.md)
+[简体中文](README.zh-CN.md) · ⭐ Star the repository to follow its progress.
 
 </div>
 
----
+> [!NOTE]
+> Early development — APIs and stored data may change.
 
-Infinite World is an open-source project for using multimodal AI to understand and simulate worlds, then influence how they change through interaction. Text, images, video, audio, and external events can become inputs. The world turns them into state, rules, and possible next actions.
+## What Is Infinite World?
 
-[FAL](http://fal.ai/)'s work on H3 inference optimization points to a broader possibility: an interactive content system built with frontier LLMs and multimodal AI, where people can shape what happens and discover more interesting ways to interact with a changing world. Infinite World is an open-source exploration of that direction.
+Infinite World combines multimodal understanding, world simulation, and interaction in one continuous loop:
 
-Each world keeps its scenes, choices, state changes, and branches as it runs. People can explore it locally, affect what happens, and share the resulting experience.
+- **Understand.** Read text, images, video, audio, and external events.
+- **Simulate.** Turn those inputs into world state, rules, and possible next actions.
+- **Interact.** Let people, agents, and events influence what happens next.
+- **Continue.** Record scenes, choices, state changes, and branches as the world runs.
 
-## Why Infinite World
+## Why Build It?
 
-Infinite World brings multimodal AI into a continuous world loop:
+[fal.ai](https://fal.ai/)'s work on H3 inference optimization showed us a possibility: use frontier LLMs and multimodal models to build interactive content where people can shape a world as it changes. Infinite World starts there.
 
-- **Understand.** Read the world through text, images, video, audio, and events.
-- **Simulate.** Maintain state, rules, context, and history as the world changes.
-- **Interact.** Let people and external events influence what happens next.
-- **Explore.** Use the same world to try new interactions, play patterns, and branches.
-- **Improve.** Keep the process and its records available for better models and better worlds.
+Most multimodal generation still produces isolated pieces of content. Infinite World connects understanding, simulation, and interaction in a world that keeps running.
 
-## The Core Model
+A continuously running world can support new forms of games and interactive content, with people and agents shaping the same evolving environment. The same system may also help embodied agents understand context, simulate possible outcomes, and decide what to do next.
 
-```text
-Multimodal inputs and interaction
-        |
-        v
-World understanding
-        |
-        v
-World state and simulation ----> Scenes, branches, and history
-        |
-        +----> New observations and data
-        |
-        +----> Local preview and future outputs
-```
+Infinite World is open source so developers, creators, and researchers can build it together: add models, inputs, interactions, and outputs; create new worlds; and share what they learn.
 
-An Infinite World connects seven ideas:
+## Current Status
 
-| Concept | Meaning |
+| Capability | Status |
 | --- | --- |
-| **World** | A persistent setting with its own rules, context, and state. |
-| **Scene** | A generated moment rendered from the current world state. |
-| **Interaction** | A choice, event, or input that can change the world. |
-| **Branch** | A new possible continuation created by an option or event. |
-| **History** | The recorded state, scenes, choices, and paths of a world. |
-| **Output** | A way to share or observe a branch, such as a channel, export, or interactive view. |
-| **Preview** | A local view for testing and shaping a world before sharing it. |
+| Local world configuration and persistence | Prototype available |
+| Provider-backed prompt and media generation | In development |
+| Consecutive scene generation with retained context | In development |
+| Browser preview, run history, and metrics | Prototype available |
+| FFmpeg-backed RTMP output | In development |
+| External events, chat, audio, mouse, and keyboard input | Planned |
 
-## Use Cases
+## Quick Start
 
-| Scene | Video |
-| --- | --- |
-| **Text and image**<br><sub>In development</sub> | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> |
-| **Sound**<br><sub>Not started</sub> | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> |
-| **Mouse and keyboard**<br><sub>Not started</sub> | <video src="https://github.com/user-attachments/assets/57936a0b-08b9-43d8-b75d-f72d765a2ec1" controls muted playsinline width="320"></video> |
-| **Live output**<br><sub>In development</sub> | <video src="https://github.com/user-attachments/assets/658ca16c-d999-4118-8526-d6d23d470436" controls muted playsinline width="320"></video> |
-| **Multimodal**<br><sub>Not started</sub> | <video src="https://github.com/user-attachments/assets/da0b08ab-a04b-46d0-8f4b-65e7204cc9bc" controls muted playsinline width="320"></video> |
+### Requirements
 
-## Roadmap
+- Node.js 20+
+- pnpm 10+
+- FFmpeg on `PATH` only when using RTMP output
 
-- [x] Create interactive worlds shaped by text-based choices.
-- [x] Run worlds continuously with local preview and live output.
-- [ ] Connect more live platforms.
-- [ ] Add more interaction inputs.
-- [ ] Explore new interaction formats and game forms.
-
-See the [Product Roadmap](docs/product/roadmap.md) for details.
-
-## Why Open Source
-
-Understanding and simulating the physical world still requires more experiments, and better models need more continuous, feedback-rich data. Games are a central direction for this exploration: new game forms and interaction content can reveal new ways for people and agents to engage with changing worlds. The same world systems may also serve as a brain for embodied intelligence, helping it understand the world, simulate change, and decide what to do next. Open source makes these experiments easier to inspect, share, reproduce, and extend.
-
-- **More game forms.** Contributors can explore games built around persistent worlds, evolving rules, and meaningful choices.
-- **More interaction content.** New controls, events, and forms of participation can change how people and agents enter a world.
-- **Embodied intelligence.** A persistent world model can help embodied agents understand context, simulate consequences, and choose actions.
-- **More use cases.** The same foundation can evolve for creative tools, research, and other applications.
-- **More useful records.** Running worlds produce data about state changes, choices, branches, and feedback. With user permission and control over the data, those records can support training and evaluating better models.
-- **Replaceable building blocks.** Models, renderers, encoders, and output providers can evolve independently.
-- **Shared progress.** Experiments and working tools can be reused instead of rebuilt in isolation.
-
-The project favors clear boundaries, portable data, and small composable pieces so worlds can keep changing as new ideas emerge.
-
-## Start Locally
-
-Install the workspace dependencies:
+Clone the repository and install the workspace dependencies:
 
 ```bash
+git clone https://github.com/BuzzPlay/infinite-world.git
+cd infinite-world
 pnpm install
 ```
 
-Start the API in one terminal:
+Start the API and Web application in separate terminals:
 
 ```bash
 pnpm dev:api
 ```
 
-Start the Web application in another terminal:
-
 ```bash
 pnpm dev:web
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Configure provider keys in Settings before selecting hosted models. If a key is not configured, that capability remains `none`.
+Open [http://localhost:5173](http://localhost:5173).
 
-The Web app uses the local API at `http://127.0.0.1:4000` during development. Set `NEXT_PUBLIC_API_URL` when the Web app and API are served from different origins.
+## How It Works
+
+```text
+Prompt, image, and interaction
+              |
+              v
+      World understanding
+              |
+              v
+Persistent state and context ----> Scene generation ----> Preview / output
+              ^                           |
+              |                           v
+              +---------------- History and feedback
+```
+
+The runtime separates seven concepts:
+
+| Concept | Meaning |
+| --- | --- |
+| **World** | A persistent setting with its own rules, context, and state. |
+| **Scene** | A generated moment produced from the current world state. |
+| **Interaction** | A choice, event, or input that may change the world. |
+| **Branch** | A possible continuation created by an option or event. |
+| **History** | The recorded states, scenes, choices, and paths of a world. |
+| **Output** | A way to observe or share a run, such as a preview or RTMP stream. |
+| **Preview** | A local surface for testing and shaping a world before sharing it. |
+
+See the [architecture documentation](docs/architecture/README.md) for runtime boundaries, lifecycle, and API contracts.
+
+## Exploration Directions
+
+These clips show the interaction directions. Current implementation status is listed below.
+
+| Direction | Concept video | Status |
+| --- | --- | --- |
+| **Text and image** | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> | In development |
+| **Sound** | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> | Planned |
+| **Mouse and keyboard** | <video src="https://github.com/user-attachments/assets/57936a0b-08b9-43d8-b75d-f72d765a2ec1" controls muted playsinline width="320"></video> | Planned |
+| **Live output** | <video src="https://github.com/user-attachments/assets/658ca16c-d999-4118-8526-d6d23d470436" controls muted playsinline width="320"></video> | In development |
+| **Multimodal interaction** | <video src="https://github.com/user-attachments/assets/da0b08ab-a04b-46d0-8f4b-65e7204cc9bc" controls muted playsinline width="320"></video> | Planned |
+
+## What We Are Exploring
+
+- How can generated scenes retain identity, state, and causal continuity over time?
+- How should text, media, people, and external events update a shared world state?
+- Which boundaries let models, renderers, inputs, and outputs remain replaceable?
+- How can persistent worlds be evaluated while keeping generated records under user control?
+- What new game and interaction formats become possible when a generated world keeps running?
+
+## Roadmap
+
+- [ ] Create interactive worlds shaped by text-based choices. *(In development)*
+- [ ] Run worlds continuously with local preview and live output. *(In development)*
+- [ ] Connect more live platforms.
+- [ ] Add more interaction inputs.
+- [ ] Explore new interaction formats and game forms.
+
+See the [Product Roadmap](docs/product/roadmap.md) for detailed stages and acceptance criteria.
 
 ## Contributing
 
-Start with the [Agent Guide](AGENTS.md) and the relevant document category before changing a boundary. Keep product behavior in the README or `docs/product/`, technical rationale in `docs/decisions/`, and chronological progress in `docs/development-log.md`.
+Ways to contribute:
 
-Issues, experiments, documentation improvements, and implementation contributions are welcome as the project takes shape.
+- reproducible world examples and generation presets;
+- provider, input, preview, and output adapters;
+- continuity evaluation and failure cases;
+- documentation, platform testing, and interaction experiments.
 
-## Reference
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Changes that affect project boundaries should also follow the [Agent Guide](AGENTS.md).
+
+Questions and experiments are welcome in [GitHub Discussions](https://github.com/BuzzPlay/infinite-world/discussions). Bugs and scoped proposals can be opened as [GitHub Issues](https://github.com/BuzzPlay/infinite-world/issues).
+
+## References
 
 - [infinite-tv](https://github.com/alex-remade/infinite-tv)
 - [fal.live](https://fal.live/)
@@ -130,3 +155,7 @@ Issues, experiments, documentation improvements, and implementation contribution
 - [Odin Lovis](https://x.com/OdinLovis/status/2095644474055782725)
 - [Diiverge](https://www.diiverge.co/)
 - [Code World Model](https://github.com/buaacyw/code-world-model)
+
+## License
+
+Infinite World is licensed under the [Apache License 2.0](LICENSE).
