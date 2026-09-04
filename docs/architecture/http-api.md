@@ -52,6 +52,8 @@ The WebRTC route is currently a signaling placeholder. It accepts a WebSocket co
 
 Worlds, runs, provider settings, and chat settings are persisted in `~/.infinite-world/state.json`. Set `INFINITE_WORLD_DATA_DIR` or `INFINITE_WORLD_DATA_FILE` to change the location. Secrets are stored locally and never included in API snapshots.
 
-World configuration stores a separate model for vision and video. Vision models use the configured Google key; video models use the FAL client and the configured FAL key. A missing provider key leaves that capability as `none`.
+World configuration stores a separate model for vision and video. Vision models can use either the configured Google key or the configured FAL key through the corresponding AI adapter; video models use the FAL client and the configured FAL key. A missing provider key leaves that capability as `none`.
+
+Video configuration stores a stable model-family ID rather than a provider endpoint. The API resolves that family to a text-to-video endpoint when the first scene has no initial image, or an image-to-video endpoint when it does. The initial image is used only for the first scene. Supported durations, frame rates, resolutions, aspect ratios, and endpoint mappings live in the shared model catalog.
 
 An RTMP run starts FFmpeg for generated video and replaces the input as new scenes arrive. Set `INFINITE_WORLD_FFMPEG_BIN` when FFmpeg is not on `PATH`. Browser output is kept as a separate signaling path so it can be replaced by a native transport later.

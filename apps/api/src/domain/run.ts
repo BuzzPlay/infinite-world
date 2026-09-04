@@ -125,7 +125,7 @@ export function appendScene(run: StoredRun, scene: GeneratedScene, generation: G
     timestamp: nowIso(),
     prompt: scene.prompt,
     negativePrompt: generation.negativePrompt,
-    initialImageUrl: generation.initialImageUrl,
+    initialImageUrl: sequence === 1 ? generation.initialImageUrl : null,
     model: generation.model,
     visionModel: generation.visionModel,
     mode: generation.mode,

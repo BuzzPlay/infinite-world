@@ -23,6 +23,9 @@ importers:
       '@ai-sdk/google':
         specifier: 4.0.63
         version: 4.0.63(zod@4.5.4)
+      '@ai-sdk/openai-compatible':
+        specifier: 3.0.43
+        version: 3.0.43(zod@4.5.4)
       '@fal-ai/client':
         specifier: ^1.9.0
         version: 1.10.1
@@ -159,6 +162,12 @@ packages:
 
   '@ai-sdk/google@4.0.63':
     resolution: {integrity: sha512-SlKcqnN0oKC8JWahecs3IvFnIFgbrEE4i/bmom5xsPFUjkIVvXAJAhRzjfgfROSOOeyvouKUFPWJEjn11FWf3A==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/openai-compatible@3.0.43':
+    resolution: {integrity: sha512-QurboftQF0jGshbNM5KHNNpttp7huKSV7rN+C7ylcT5XsLZPud1eCMqyX0zlYFxm6pE4MEc/1PgFX12tm85yqg==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -2777,6 +2786,12 @@ snapshots:
       zod: 4.5.4
 
   '@ai-sdk/google@4.0.63(zod@4.5.4)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.10
+      '@ai-sdk/provider-utils': 5.0.36(zod@4.5.4)
+      zod: 4.5.4
+
+  '@ai-sdk/openai-compatible@3.0.43(zod@4.5.4)':
     dependencies:
       '@ai-sdk/provider': 4.0.10
       '@ai-sdk/provider-utils': 5.0.36(zod@4.5.4)

@@ -7,7 +7,7 @@ import type {
 import {
   applyGenerationInput,
   isHostedGenerationModel,
-  isHostedVisionModel,
+  isVisionModelConfigured,
 } from '../domain/generation.js';
 import {
   appendScene,
@@ -36,23 +36,7 @@ export class RunService {
     const run = this.state.getRun(worldId) ?? newRun(worldId);
     if (isActive(run)) throw new ApiError(409, 'invalid_state', 'the project is already running');
     const generation = applyGenerationInput(world.generation, input);
-    if (generation.model === 'none') {
-      throw new ApiError(400, 'missing_video_model', 'select a video model before starting');
-    }
-    if (isHostedGenerationModel(generation.model) && !this.state.provider.falApiKey) {
-      throw new ApiError(
-        400,
-        'missing_provider_key',
-        'configure a provider key before starting hosted generation',
-      );
-    }
-    if (isHostedVisionModel(generation.visionModel) && !this.state.provider.googleApiKey) {
-      throw new ApiError(
-        400,
-        'missing_vision_provider_key',
-        'configure a Google API key before starting hosted vision',
-      );
-    }
+    this.requireRunnableGeneration(generation);
     const nextWorld = { ...world, generation };
     this.state.setWorld(worldId, nextWorld);
     const nextRun = newRun(worldId);
@@ -104,15 +88,19 @@ export class RunService {
       throw new ApiError(409, 'invalid_state', 'stop the current run before restarting');
     const world = this.state.getWorld(worldId);
     if (!world) throw new ApiError(404, 'not_found', 'world does not exist');
+    const generation = applyGenerationInput(world.generation, {});
+    this.requireRunnableGeneration(generation);
+    const nextWorld = { ...world, generation };
     const nextRun = newRun(worldId);
     nextRun.state = 'preparing';
     nextRun.startedAt = nowIso();
     nextRun.outputSettings = previous.outputSettings ?? null;
     nextRun.output = outputSnapshot(nextRun.outputSettings);
     nextRun.metrics.outputState = nextRun.output ? 'connecting' : 'idle';
+    this.state.setWorld(worldId, nextWorld);
     this.state.setRun(worldId, nextRun);
     this.state.persist();
-    return { world: clone(world), run: clone(nextRun) };
+    return { world: clone(nextWorld), run: clone(nextRun) };
   }
 
   append(worldId: string, scene: GeneratedScene, generation: GenerationSettings) {
@@ -155,11 +143,11 @@ export class RunService {
         'configure a provider key before selecting hosted generation',
       );
     }
-    if (isHostedVisionModel(generation.visionModel) && !this.state.provider.googleApiKey) {
+    if (!isVisionModelConfigured(generation.visionModel, this.state.provider)) {
       throw new ApiError(
         400,
         'missing_vision_provider_key',
-        'configure a Google API key before selecting hosted vision',
+        'configure the selected vision provider before selecting hosted vision',
       );
     }
     this.state.setWorld(worldId, { ...world, generation });
@@ -185,5 +173,25 @@ export class RunService {
     const run = this.state.getRun(worldId);
     if (!run) throw new ApiError(404, 'not_found', 'no run exists');
     return run;
+  }
+
+  private requireRunnableGeneration(generation: GenerationSettings) {
+    if (generation.model === 'none') {
+      throw new ApiError(400, 'missing_video_model', 'select a video model before starting');
+    }
+    if (isHostedGenerationModel(generation.model) && !this.state.provider.falApiKey) {
+      throw new ApiError(
+        400,
+        'missing_provider_key',
+        'configure a provider key before starting hosted generation',
+      );
+    }
+    if (!isVisionModelConfigured(generation.visionModel, this.state.provider)) {
+      throw new ApiError(
+        400,
+        'missing_vision_provider_key',
+        'configure the selected vision provider before starting hosted vision',
+      );
+    }
   }
 }

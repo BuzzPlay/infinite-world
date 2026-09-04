@@ -1,14 +1,18 @@
 import { createGoogle } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateObject, type LanguageModel, type ModelMessage } from 'ai';
 import { z } from 'zod';
 
 import { findModel } from '@infinite-world/api-contract/model-catalog';
 import type { GenerationInput, ProviderState } from '../../types.js';
+import { initialImageForScene } from './scene-input.js';
 
 const sceneSchema = z.object({
   prompt: z.string().min(1),
   context_summary: z.string().optional(),
 });
+
+const FAL_OPENROUTER_BASE_URL = 'https://fal.run/openrouter/router/openai/v1';
 
 export interface PromptResult {
   prompt: string;
@@ -21,6 +25,7 @@ export class PromptProvider {
     const fallback = fallbackPrompt(input);
     const model = resolveModel(input, settings);
     if (!model) return fallback;
+    const initialImage = initialImageForScene(input);
 
     try {
       const result = await generateObject({
@@ -28,8 +33,8 @@ export class PromptProvider {
         schema: sceneSchema,
         schemaName: 'scene_progression',
         system: systemPrompt(input.generation.mode, input.generation.stylePreset),
-        ...(input.generation.initialImageUrl
-          ? { messages: imageMessages(requestText(input), input.generation.initialImageUrl) }
+        ...(initialImage
+          ? { messages: imageMessages(requestText(input), initialImage) }
           : { prompt: requestText(input) }),
         maxOutputTokens: 400,
         maxRetries: 1,
@@ -47,10 +52,23 @@ export class PromptProvider {
 }
 
 function resolveModel(input: GenerationInput, settings: ProviderState): LanguageModel | null {
-  if (!settings.googleApiKey) return null;
   const definition = findModel('vision', input.generation.visionModel);
-  if (definition?.provider !== 'google' || !definition.modelId) return null;
-  return createGoogle({ apiKey: settings.googleApiKey })(definition.modelId);
+  if (!definition?.modelId) return null;
+
+  if (definition.provider === 'google' && settings.googleApiKey) {
+    return createGoogle({ apiKey: settings.googleApiKey })(definition.modelId);
+  }
+
+  if (definition.provider === 'fal' && settings.falApiKey) {
+    return createOpenAICompatible({
+      baseURL: FAL_OPENROUTER_BASE_URL,
+      headers: { Authorization: `Key ${settings.falApiKey}` },
+      name: 'fal',
+      supportsStructuredOutputs: true,
+    })(definition.modelId);
+  }
+
+  return null;
 }
 
 function imageMessages(text: string, imageUrl: string): ModelMessage[] {
