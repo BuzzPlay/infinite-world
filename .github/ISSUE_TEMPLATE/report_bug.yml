@@ -1,0 +1,50 @@
+name: "🐛 Report a bug"
+description: Report a problem encountered while using Infinite World.
+labels:
+  - bug
+body:
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug description
+      description: Clearly describe what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: List the smallest set of steps that consistently reproduces the problem.
+      placeholder: |
+        1. Open ...
+        2. Configure ...
+        3. Select ...
+        4. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the operating system, Node.js version, and commit or branch if relevant.
+      value: |
+        - Operating system:
+        - Node.js version:
+        - Infinite World commit or branch:
+        - Browser:
+    validations:
+      required: true
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: Additional information
+      description: Attach screenshots, logs, error messages, or a minimal example when available.
+    validations:
+      required: false

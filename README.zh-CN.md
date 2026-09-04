@@ -58,6 +58,16 @@ Infinite World 由七个相互连接的概念组成：
 | **Output 输出** | 分享或观察某个分支的方式，例如频道、导出文件或交互式视图。 |
 | **Preview 预览** | 在分享世界之前，用于本地测试和塑造世界的视图。 |
 
+## 使用场景
+
+| 场景 | 视频 |
+| --- | --- |
+| **Text and image 图文**<br><sub>开发中</sub> | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> |
+| **Sound 声音**<br><sub>未开始</sub> | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> |
+| **Mouse and keyboard 鼠标和键盘**<br><sub>未开始</sub> | <video src="https://github.com/user-attachments/assets/57936a0b-08b9-43d8-b75d-f72d765a2ec1" controls muted playsinline width="320"></video> |
+| **Live output 直播输出**<br><sub>开发中</sub> | <video src="https://github.com/user-attachments/assets/658ca16c-d999-4118-8526-d6d23d470436" controls muted playsinline width="320"></video> |
+| **Multimodal 多模态**<br><sub>未开始</sub> | <video src="https://github.com/user-attachments/assets/da0b08ab-a04b-46d0-8f4b-65e7204cc9bc" controls muted playsinline width="320"></video> |
+
 ## 路线图
 
 - [x] 创建由文字选项推动的交互世界。
@@ -119,3 +129,4 @@ pnpm dev:web
 - [H3 World Action Demo](https://huggingface.co/spaces/hugging-apps/h3-world-action-demo)
 - [Odin Lovis](https://x.com/OdinLovis/status/2095644474055782725)
 - [Diiverge](https://www.diiverge.co/)
+- [Code World Model](https://github.com/buaacyw/code-world-model)

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "dev:web": "pnpm --filter @infinite-world/web dev",
     "dev:api": "pnpm --filter @infinite-world/api dev",
     "dev": "pnpm --parallel dev:web dev:api",
@@ -17,6 +18,8 @@
     "typecheck:api": "pnpm --filter @infinite-world/api typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.12"
+    "@biomejs/biome": "^2.5.12",
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1"
   }
 }

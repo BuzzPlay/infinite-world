@@ -1,0 +1,26 @@
+name: "🤔 Request new features"
+description: Suggest an idea or feature for Infinite World.
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature description
+      description: Describe the feature clearly and explain what it should make possible.
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Tell us how this would be used in a world, interaction, preview, or output workflow.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add examples, sketches, links, or implementation notes if useful.
+    validations:
+      required: false

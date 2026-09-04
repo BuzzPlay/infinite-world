@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "commit-msg: pnpm is required to validate commit messages" >&2
+  exit 1
+fi
+
+pnpm exec commitlint --edit "$1"
