@@ -1,12 +1,14 @@
+import type { ChooseSceneOptionRequest } from '@infinite-world/api-contract';
 import type { FastifyInstance } from 'fastify';
-
+import { publicRun } from '../domain/run.js';
 import type { RunManager } from '../runtime/run-manager.js';
 import type { RunService } from '../services/run-service.js';
 import { ApiError } from '../shared/errors.js';
-import { publicRun } from '../domain/run.js';
 import type { RunConfigInput, RunStartInput } from '../types.js';
 
 type RunParams = { worldId: string };
+type SceneParams = RunParams & { sceneId: string };
+type VersionParams = RunParams & { versionId: string };
 
 export function registerRunRoutes(app: FastifyInstance, runs: RunService, manager: RunManager) {
   app.get<{ Params: RunParams }>('/api/worlds/:worldId/run', async (request) => {
@@ -31,10 +33,18 @@ export function registerRunRoutes(app: FastifyInstance, runs: RunService, manage
   app.post<{ Params: RunParams }>('/api/worlds/:worldId/run/restart', async (request) => ({
     run: publicRun(manager.restart(request.params.worldId)),
   }));
-  app.post<{ Params: RunParams; Body: { optionId: string } }>(
+  app.post<{ Params: RunParams; Body: ChooseSceneOptionRequest }>(
     '/api/worlds/:worldId/run/choice',
     async (request) => ({
-      run: publicRun(manager.choose(request.params.worldId, request.body?.optionId)),
+      run: publicRun(
+        manager.choose(request.params.worldId, request.body?.optionId, request.body?.sceneId),
+      ),
+    }),
+  );
+  app.post<{ Params: SceneParams }>(
+    '/api/worlds/:worldId/run/scenes/:sceneId/activate',
+    async (request) => ({
+      run: publicRun(manager.activateScene(request.params.worldId, request.params.sceneId)),
     }),
   );
   app.patch<{ Params: RunParams; Body: RunConfigInput }>(
@@ -44,21 +54,26 @@ export function registerRunRoutes(app: FastifyInstance, runs: RunService, manage
     }),
   );
 
-  app.get<{ Params: RunParams }>(
-    '/api/worlds/:worldId/run/metrics/ws',
-    { websocket: true },
-    (socket, request) => {
-      const worldId = request.params.worldId;
-      const send = () => {
-        try {
-          socket.send(JSON.stringify(manager.metrics(worldId)));
-        } catch {
-          // The browser may close between the timer and send.
-        }
-      };
-      const timer = setInterval(send, 1_000);
-      socket.on('close', () => clearInterval(timer));
-      send();
-    },
+  app.delete<{ Params: SceneParams }>(
+    '/api/worlds/:worldId/run/scenes/:sceneId',
+    async (request) => ({
+      run: publicRun(manager.deleteSceneBranch(request.params.worldId, request.params.sceneId)),
+    }),
+  );
+
+  app.delete<{ Params: VersionParams }>(
+    '/api/worlds/:worldId/run/versions/:versionId',
+    async (request) => ({
+      run: publicRun(manager.deleteRunVersion(request.params.worldId, request.params.versionId)),
+    }),
+  );
+
+  app.post<{ Params: SceneParams }>(
+    '/api/worlds/:worldId/run/scenes/:sceneId/options',
+    async (request) => ({
+      run: publicRun(
+        await manager.regenerateSceneOptions(request.params.worldId, request.params.sceneId),
+      ),
+    }),
   );
 }

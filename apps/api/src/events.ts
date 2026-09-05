@@ -1,7 +1,6 @@
 import type { WorldSnapshot } from '@infinite-world/api-contract';
-
-import { publicRun } from './domain/run.js';
 import { providerResponse } from './domain/provider.js';
+import { publicRun } from './domain/run.js';
 import type { RuntimeState } from './runtime/state.js';
 import type { RealtimeEvent, StoredRun } from './types.js';
 
@@ -17,7 +16,7 @@ export class EventHub {
 
   publish(event: RealtimeEvent) {
     const publicEvent =
-      'run' in event
+      'run' in event && event.run
         ? ({ ...event, run: publicRun(event.run as StoredRun) } as RealtimeEvent)
         : event;
     for (const listener of this.listeners) listener(publicEvent);

@@ -15,6 +15,7 @@ export function stylePresetChanges(preset: StylePreset) {
 }
 
 export const defaultWorldConfig: WorldConfig = {
+  interactionType: 'text',
   name: '',
   prompt: '',
   generation: { ...DEFAULT_GENERATION },

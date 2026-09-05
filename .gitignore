@@ -13,6 +13,11 @@ build/
 .tsbuild/
 coverage/
 *.tsbuildinfo
+__pycache__/
+*.py[cod]
+
+# Emoji data is copied from the package during dev/build.
+apps/web/public/emojibase/
 
 # Runtime output
 logs/

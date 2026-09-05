@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 5173",
-    "build": "next build",
+    "dev": "node scripts/copy-emojibase-data.mjs && next dev --port 5173",
+    "build": "node scripts/copy-emojibase-data.mjs && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
@@ -14,9 +14,12 @@
     "@phosphor-icons/react": "2.1.10",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.8",
+    "@xyflow/react": "^12.11.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^0.2.1",
+    "emojibase-data": "^17.0.0",
+    "frimousse": "^0.3.0",
     "lucide-react": "^0.468.0",
     "motion": "^12.40.0",
     "next": "^16.3.0",

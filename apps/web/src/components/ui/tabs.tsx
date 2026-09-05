@@ -131,8 +131,7 @@ function Tabs({
       <TabsPrimitive.Root
         data-slot="tabs"
         className={cn('flex flex-col gap-2', className)}
-        value={value}
-        defaultValue={defaultValue}
+        value={activeValue}
         onValueChange={handleValueChange}
         {...props}
       />
@@ -143,6 +142,7 @@ function Tabs({
 interface TabsListProps extends React.ComponentProps<typeof TabsPrimitive.List> {
   type?: TabsListType;
   size?: TabsSize;
+  indicatorClassName?: string;
   /** Active underline stroke. Only applies when `type="underline"`. Default `sm`. */
   underlineSize?: TabsUnderlineSize;
   animate?: 'fluid' | 'none';
@@ -159,6 +159,7 @@ function TabsList({
   className,
   type = 'default',
   size = 'default',
+  indicatorClassName,
   underlineSize = 'sm',
   animate = 'fluid',
   orientation = 'horizontal',
@@ -207,7 +208,10 @@ function TabsList({
                   tabsListHeightClasses[size],
                   className,
                 )}
-                indicatorClassName="bg-input rounded-[calc(var(--radius)-2.5px)]"
+                indicatorClassName={cn(
+                  'bg-input rounded-[calc(var(--radius)-2.5px)]',
+                  indicatorClassName,
+                )}
               >
                 {list}
               </SlidingTabIndicator>

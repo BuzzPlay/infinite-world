@@ -447,6 +447,35 @@
   }
 }
 
+@keyframes world-building-logo {
+  0%,
+  100% {
+    transform: scale(0.94);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes world-building-dots {
+  0%,
+  24% {
+    content: "";
+  }
+  25%,
+  49% {
+    content: ".";
+  }
+  50%,
+  74% {
+    content: "..";
+  }
+  75%,
+  100% {
+    content: "...";
+  }
+}
+
 .animate-spinner-orbit {
   transform-origin: center;
   animation: spinner-orbit 1.4s linear infinite;
@@ -469,6 +498,15 @@
   animation: spinner-spokes 0.8s steps(8) infinite;
 }
 
+.world-building-logo {
+  animation: world-building-logo 1.8s ease-in-out infinite;
+}
+
+.world-building-dots::after {
+  content: "";
+  animation: world-building-dots 1.4s steps(1, end) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-spinner-orbit,
   .animate-spinner-spin {
@@ -483,6 +521,15 @@
 
   .animate-spinner-spokes {
     animation: spinner-spokes 1.4s linear infinite;
+  }
+
+  .world-building-logo,
+  .world-building-dots::after {
+    animation: none;
+  }
+
+  .world-building-dots::after {
+    content: "...";
   }
 }
 

@@ -1,9 +1,14 @@
-import type { WorldConfig, WorldListResponse, WorldResponse } from '@infinite-world/api-contract';
+import type {
+  DeleteWorldResponse,
+  WorldConfig,
+  WorldListResponse,
+  WorldResponse,
+} from '@infinite-world/api-contract';
 
 import { makeWorld } from '../domain/generation.js';
 import { clone, newRun, safeWorldResponse } from '../domain/run.js';
-import { ApiError } from '../shared/errors.js';
 import type { RuntimeState } from '../runtime/state.js';
+import { ApiError } from '../shared/errors.js';
 
 export class WorldService {
   constructor(private readonly state: RuntimeState) {}
@@ -34,7 +39,7 @@ export class WorldService {
 
   create(config: WorldConfig) {
     const world = makeWorld(config, this.state.provider);
-    const run = newRun(world.id);
+    const run = newRun(world.id, undefined, 1, world.generation);
     this.state.setWorld(world.id, world);
     this.state.setRun(world.id, run);
     this.state.setActiveWorldId(world.id);
@@ -55,17 +60,32 @@ export class WorldService {
     const world = makeWorld(config, this.state.provider, current.id, current.createdAt);
     this.state.setWorld(worldId, world);
     this.state.persist();
-    return safeWorldResponse(world, run ?? newRun(worldId), Boolean(this.state.provider.falApiKey));
+    return safeWorldResponse(
+      world,
+      run ?? newRun(worldId, undefined, 1, world.generation),
+      Boolean(this.state.provider.falApiKey),
+    );
   }
 
   select(worldId: string) {
     if (!this.state.getWorld(worldId)) throw new ApiError(404, 'not_found', 'world does not exist');
-    if (this.state.activeRun && isActiveState(this.state.activeRun.state)) {
-      throw new ApiError(409, 'invalid_state', 'stop the current run before switching projects');
-    }
     this.state.setActiveWorldId(worldId);
     this.state.persist();
     return this.current() as WorldResponse;
+  }
+
+  remove(worldId: string): DeleteWorldResponse {
+    if (!this.state.getWorld(worldId)) throw new ApiError(404, 'not_found', 'world does not exist');
+    const run = this.state.getRun(worldId);
+    if (run && isActiveState(run.state))
+      throw new ApiError(409, 'invalid_state', 'stop the run before deleting the project');
+
+    this.state.deleteWorld(worldId);
+    this.state.persist();
+    return {
+      deletedWorldId: worldId,
+      activeWorld: this.current(),
+    };
   }
 }
 

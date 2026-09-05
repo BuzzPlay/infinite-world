@@ -2,19 +2,25 @@ import type { WorldSnapshot } from '@infinite-world/api-contract';
 
 import { normalizeStoredWorld } from '../domain/generation.js';
 import { newRun, normalizeStoredRun } from '../domain/run.js';
-import { loadState, saveState, defaultProviderState } from '../storage/file-store.js';
-import type { PersistedState, ProviderState, StoredRun } from '../types.js';
+import { defaultProviderState, loadState, saveState } from '../storage/file-store.js';
+import type { ProviderState, RuntimeSnapshot, StoredRun } from '../types.js';
 
 export class RuntimeState {
   private readonly worlds = new Map<string, WorldSnapshot>();
   private readonly runs = new Map<string, StoredRun>();
-  private state: PersistedState;
+  private state: RuntimeSnapshot;
   readonly provider: ProviderState;
 
-  constructor(persisted = loadState()) {
+  constructor(
+    persisted = loadState(),
+    private readonly persistState: (state: RuntimeSnapshot) => void = saveState,
+  ) {
     this.state = persisted;
     for (const world of persisted.worlds) this.worlds.set(world.id, normalizeStoredWorld(world));
-    for (const run of persisted.runs) this.runs.set(run.worldId, normalizeStoredRun(run));
+    for (const run of persisted.runs) {
+      const world = this.worlds.get(run.worldId);
+      this.runs.set(run.worldId, normalizeStoredRun(run, world?.generation));
+    }
     const savedProvider = persisted.provider;
     const defaults = defaultProviderState();
     this.provider = {
@@ -47,7 +53,9 @@ export class RuntimeState {
       this.state.activeWorldId = persisted.worlds[0]?.id ?? null;
     }
     for (const world of this.worlds.values()) {
-      if (!this.runs.has(world.id)) this.runs.set(world.id, newRun(world.id));
+      if (!this.runs.has(world.id)) {
+        this.runs.set(world.id, newRun(world.id, undefined, 1, world.generation));
+      }
     }
   }
 
@@ -83,7 +91,15 @@ export class RuntimeState {
     this.runs.set(worldId, run);
   }
 
-  setActiveWorldId(worldId: string) {
+  deleteWorld(worldId: string) {
+    this.worlds.delete(worldId);
+    this.runs.delete(worldId);
+    if (this.state.activeWorldId === worldId) {
+      this.state.activeWorldId = this.worlds.keys().next().value ?? null;
+    }
+  }
+
+  setActiveWorldId(worldId: string | null) {
     this.state.activeWorldId = worldId;
   }
 
@@ -91,6 +107,6 @@ export class RuntimeState {
     this.state.worlds = [...this.worlds.values()];
     this.state.runs = [...this.runs.values()];
     this.state.provider = this.provider;
-    saveState(this.state);
+    this.persistState(this.state);
   }
 }

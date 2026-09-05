@@ -91,7 +91,7 @@ export function ProviderModelDetail({
                     {model.label}
                   </span>
                   <code className="block min-w-0 truncate text-xs text-muted-foreground/60">
-                    {model.modelId}
+                    {model.id}
                   </code>
                 </div>
               </li>

@@ -1,12 +1,21 @@
+import type {
+  GenerationSettings,
+  InteractionType,
+  WorldConfig,
+  WorldSnapshot,
+} from '@infinite-world/api-contract';
 import { DEFAULT_GENERATION } from '@infinite-world/api-contract';
 import {
-  DEFAULT_VISION_MODEL,
   DEFAULT_VIDEO_MODEL,
-  isGoogleVisionModel,
+  DEFAULT_VISION_MODEL,
+  FAL_GEMINI_MODEL,
+  findModel,
   isFalVideoModel,
   MODEL_CATALOG,
+  normalizeVideoModelId,
+  videoEndpointFor,
+  videoProfileFor,
 } from '@infinite-world/api-contract/model-catalog';
-import type { GenerationSettings, WorldConfig, WorldSnapshot } from '@infinite-world/api-contract';
 
 import { ApiError } from '../shared/errors.js';
 import type { ProviderState, RunConfigInput, RunStartInput } from '../types.js';
@@ -16,6 +25,7 @@ export const visionModels = new Set<string>(MODEL_CATALOG.vision.map((model) => 
 
 export const generationModes = new Set(['regular', 'nightmare', 'cohesive', 'visual', 'chaotic']);
 export const stylePresets = new Set(['cohesive', 'chaotic', 'nightmare', 'custom']);
+export const interactionTypes = new Set<InteractionType>(['text']);
 
 export function makeWorld(
   input: WorldConfig | null | undefined,
@@ -27,22 +37,34 @@ export function makeWorld(
     throw new ApiError(400, 'invalid_world', 'world is required');
   const name = input.name?.trim();
   const prompt = input.prompt?.trim();
+  if (!interactionTypes.has(input.interactionType)) {
+    throw new ApiError(
+      400,
+      'invalid_interaction_type',
+      `unsupported interaction type: ${String(input.interactionType)}`,
+    );
+  }
   if (!name) throw new ApiError(400, 'invalid_world', 'name is required');
   if (!prompt) throw new ApiError(400, 'invalid_world', 'prompt is required');
   const generationInput = input.generation ?? {};
-  const generation = normalizeGeneration(generationInput);
+  let generation = normalizeGeneration(generationInput);
   if (!generationInput.visionModel?.trim()) {
-    generation.visionModel = provider.googleApiKey ? DEFAULT_VISION_MODEL : 'none';
+    generation.visionModel = provider.googleApiKey
+      ? DEFAULT_VISION_MODEL
+      : provider.falApiKey
+        ? FAL_GEMINI_MODEL
+        : 'none';
   }
   if (!generationInput.model?.trim()) {
     generation.model = provider.falApiKey ? DEFAULT_VIDEO_MODEL : 'none';
   }
+  generation = normalizeVideoSettings(generation);
   validateGeneration(generation);
-  if (isGoogleVisionModel(generation.visionModel) && !provider.googleApiKey) {
+  if (!isVisionModelConfigured(generation.visionModel, provider)) {
     throw new ApiError(
       400,
       'missing_vision_provider_key',
-      'configure a Google API key before selecting hosted vision',
+      'configure the selected vision provider before selecting this model',
     );
   }
   if (isHostedGenerationModel(generation.model) && !provider.falApiKey) {
@@ -52,16 +74,16 @@ export function makeWorld(
       'configure a provider key before selecting hosted generation',
     );
   }
-  return { id, name, prompt, generation, createdAt };
+  return { id, interactionType: input.interactionType, name, prompt, generation, createdAt };
 }
 
 export function normalizeGeneration(
   input: Partial<GenerationSettings> | null | undefined,
 ): GenerationSettings {
-  return {
+  return normalizeVideoSettings({
     ...DEFAULT_GENERATION,
     ...(input ?? {}),
-    model: input?.model ?? DEFAULT_GENERATION.model,
+    model: normalizeVideoModelId(input?.model ?? DEFAULT_GENERATION.model),
     visionModel: input?.visionModel ?? DEFAULT_GENERATION.visionModel,
     resolution: input?.resolution ?? null,
     aspectRatio: input?.aspectRatio ?? null,
@@ -69,7 +91,7 @@ export function normalizeGeneration(
     seed: input?.seed ?? null,
     spatioTemporalGuidanceBlocks: input?.spatioTemporalGuidanceBlocks ?? null,
     characterRefs: Array.isArray(input?.characterRefs) ? input.characterRefs : [],
-  };
+  });
 }
 
 export function applyGenerationInput(
@@ -111,6 +133,14 @@ export function applyGenerationInput(
 export function validateGeneration(generation: GenerationSettings) {
   if (!generationModels.has(generation.model))
     throw new ApiError(400, 'invalid_model', `unsupported model: ${generation.model}`);
+  const videoInputMode = generation.initialImageUrl?.trim() ? 'image-to-video' : 'text-to-video';
+  if (generation.model !== 'none' && !videoEndpointFor(generation.model, videoInputMode)) {
+    throw new ApiError(
+      400,
+      'invalid_model_input',
+      `video model ${generation.model} does not support ${videoInputMode}`,
+    );
+  }
   if (!visionModels.has(generation.visionModel))
     throw new ApiError(
       400,
@@ -177,10 +207,51 @@ export function isHostedGenerationModel(model: string) {
   return isFalVideoModel(model);
 }
 
-export function isHostedVisionModel(model: string) {
-  return isGoogleVisionModel(model);
+export function isVisionModelConfigured(model: string, provider: ProviderState) {
+  const definition = findModel('vision', model);
+  if (!definition) return false;
+  if (definition.apiKey === null) return true;
+  return definition.apiKey === 'googleApiKey'
+    ? Boolean(provider.googleApiKey)
+    : Boolean(provider.falApiKey);
 }
 
 export function normalizeStoredWorld(world: WorldSnapshot): WorldSnapshot {
+  if (!interactionTypes.has(world.interactionType)) {
+    throw new Error(`Unsupported stored interaction type: ${String(world.interactionType)}`);
+  }
   return { ...world, generation: normalizeGeneration(world.generation) };
+}
+
+function normalizeVideoSettings(generation: GenerationSettings): GenerationSettings {
+  const profile = videoProfileFor(generation.model);
+  if (!profile) return generation;
+
+  const durationSeconds = profile.durations.includes(generation.durationSeconds)
+    ? generation.durationSeconds
+    : profile.defaults.durationSeconds;
+  const longDuration =
+    profile.longDuration && durationSeconds > profile.longDuration.aboveSeconds
+      ? profile.longDuration
+      : null;
+  const frameRate = profile.defaults.frameRate;
+  const resolution =
+    generation.resolution && profile.resolutions.includes(generation.resolution)
+      ? generation.resolution
+      : profile.defaults.resolution;
+  const aspectRatio =
+    generation.aspectRatio && profile.aspectRatios.includes(generation.aspectRatio)
+      ? generation.aspectRatio
+      : generation.initialImageUrl
+        ? 'auto'
+        : profile.defaults.aspectRatio;
+
+  return {
+    ...generation,
+    durationSeconds,
+    frameRate: longDuration?.frameRate ?? frameRate,
+    resolution: longDuration?.resolution ?? resolution,
+    aspectRatio,
+    enableAudio: profile.supportsAudio ? generation.enableAudio : false,
+  };
 }

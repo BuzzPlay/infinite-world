@@ -15,7 +15,7 @@ Thanks for helping improve Infinite World.
 - Read [AGENTS.md](AGENTS.md) for the repository structure and development rules.
 - Keep changes within the relevant app or package boundary.
 - Update the relevant documentation when a change affects product behavior or architecture.
-- Run `pnpm check` and the applicable typecheck or build commands before submitting.
+- Run `pnpm check`, `pnpm test`, and the applicable build commands before submitting.
 - Keep commits focused on one functional change when possible.
 - Follow the [commit convention](.github/commit-convention.md) when naming commits.
 - Run `pnpm install` once after cloning to enable the local commit hook.
