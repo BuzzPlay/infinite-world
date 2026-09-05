@@ -121,7 +121,7 @@ Move to the next level only when the current level would mix responsibilities or
 
 ## Verification
 
-Run `pnpm check` before committing workspace changes. It checks formatting before the TypeScript checks. Run `pnpm lint` separately when changing Web components or API boundaries.
+Run `pnpm check` before committing workspace changes. It checks formatting before the TypeScript checks. Run `pnpm lint` separately when changing Web components or API boundaries, and run `pnpm test` after changing a core API workflow.
 
 Run the checks that cover the changed boundary:
 
@@ -129,6 +129,7 @@ Run the checks that cover the changed boundary:
 pnpm typecheck:contracts
 pnpm typecheck:api
 pnpm typecheck:web
+pnpm test
 pnpm build:api
 pnpm build:web
 ```
@@ -136,3 +137,19 @@ pnpm build:web
 For a new adapter, test credential handling, request mapping, failure mapping, and cancellation. For a new run transition, test both the accepted state and the rejected states. For a Web workflow, check empty, loading, error, active, and stopped states.
 
 Record lasting technical choices in `docs/decisions/`. Record dates and completed work in `docs/development-log.md`; do not use the development log as the only description of a stable architecture.
+
+## Local Data
+
+```text
+~/.infinite-world/
+  state.json                         project index, active project, shared settings
+  projects/<project-id>/
+    project.json                     project configuration
+    state.json                       active version and version index
+    versions/<number>/
+      state.json                     run state and scenes for one version
+```
+
+Version directories use a zero-padded sequence such as `0001` or `0002`. The version ID remains in the project index and version state rather than the directory name.
+
+The root state does not contain project configuration, run state, or scene history. A run version owns only its own generated scenes. Story edges are recorded through scene ancestry and remain separate from the version index.

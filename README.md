@@ -36,16 +36,15 @@ A continuously running world can support new forms of games and interactive cont
 
 Infinite World is open source so developers, creators, and researchers can build it together: add models, inputs, interactions, and outputs; create new worlds; and share what they learn.
 
-## Current Status
+## Current Progress
 
-| Capability | Status |
+| Direction | Progress |
 | --- | --- |
-| Local world configuration and persistence | Prototype available |
-| Provider-backed prompt and media generation | In development |
-| Consecutive scene generation with retained context | In development |
-| Browser preview, run history, and metrics | Prototype available |
-| FFmpeg-backed RTMP output | In development |
-| External events, chat, audio, mouse, and keyboard input | Planned |
+| Text interaction | Use text input and choices to influence the world state and upcoming scenes. In development. |
+| Continuous worlds | Preserve world state and context across scenes. Continuous generation is being improved. |
+| Local preview | Configure worlds, run them locally, and inspect history and metrics. Prototype available. |
+| Live output | Continuous RTMP output through FFmpeg is in development. |
+| More interactions | Chat, audio, mouse, and keyboard input are planned. |
 
 ## Quick Start
 

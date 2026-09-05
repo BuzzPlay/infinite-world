@@ -4,9 +4,9 @@ This document defines the capability baseline currently supported by the local w
 
 ## World Setup
 
-- Create a world with a name, initial prompt, initial image, and optional character references.
+- Create a world with an interaction type, name, initial prompt, initial image, and optional character references.
 - Select a generation backend and configure output when starting a run.
-- Configure dimensions, frame count or duration, frame rate, guidance, seed, and generation mode when supported by the backend.
+- Configure dimensions, model-supported duration, guidance, seed, and generation mode when supported by the backend. Frame rate follows the selected model's default.
 - Save the configuration used by each run.
 
 ## Continuous Generation
@@ -37,13 +37,12 @@ This document defines the capability baseline currently supported by the local w
 - Update supported settings while a run is stopped.
 - Expose generation, queue, playback, connection, and output metrics.
 - Publish run status, scene events, metrics, and errors through a real-time event stream.
-- Stream run metrics independently while a run is active.
 - Keep generation history and the configuration used for each run.
 - Report provider, media, and output failures with enough context for recovery.
 
 ## First Acceptance Flow
 
-1. Create a world with an initial prompt and generation settings.
+1. Create a text-interaction world with an initial prompt and generation settings.
 2. Start a run and generate the first scene.
 3. Continue generation using the current scene and context.
 4. View the current result in the browser.
