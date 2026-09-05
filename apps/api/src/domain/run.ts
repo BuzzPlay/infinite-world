@@ -160,7 +160,7 @@ export function appendScene(
     continuityImageUrl: scene.continuityImageUrl ?? null,
     mediaType: scene.mediaType,
     contextSummary: scene.contextSummary,
-    options: [],
+    options: scene.options?.map(clone) ?? [],
     generatedAt: nowIso(),
     generationLatencyMs: scene.generationLatencyMs,
   };
