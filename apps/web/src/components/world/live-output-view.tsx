@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import type { LiveOutputSnapshot, RunState, SceneSnapshot } from '@infinite-world/api-contract';
 import { Radio, Square, Volume2, VolumeX } from 'lucide-react';
 import type { RefObject } from 'react';
-import type { LiveOutputSnapshot, RunState, SceneSnapshot } from '@infinite-world/api-contract';
-
-import { Button } from '../ui/button';
-import { PreviewCanvas, type RunAction } from './preview-panel';
-import { LiveRunDialog } from './live-run-dialog';
-import { defaultLiveOutputSettings, type LiveOutputSettings } from './live-output-types';
-import { connectBrowserStream, type BrowserStreamState } from '../../lib/browser-stream';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/use-translation';
+import { type BrowserStreamState, connectBrowserStream } from '../../lib/browser-stream';
+import { Button } from '../ui/button';
+import { defaultLiveOutputSettings, type LiveOutputSettings } from './live-output-types';
+import { LiveRunDialog } from './live-run-dialog';
+import { PreviewCanvas, type RunAction } from './preview-panel';
 
 interface LiveOutputViewProps {
   worldId: string | null;
@@ -18,12 +17,13 @@ interface LiveOutputViewProps {
   state: RunState;
   isRunning: boolean;
   isActive: boolean;
-  canRestart: boolean;
   busy: string | null;
   loading: boolean;
   twitchStreamKeyConfigured: boolean;
   previewRef: RefObject<HTMLDivElement>;
   selectedOptionId: string | null;
+  canOpenVersions: boolean;
+  onOpenVersions: () => void;
   onOptionSelect: (optionId: string) => void;
   onAction: (action: RunAction, output?: LiveOutputSettings) => void;
 }
@@ -35,7 +35,8 @@ export function LiveOutputView(props: LiveOutputViewProps) {
   const [streamState, setStreamState] = useState<BrowserStreamState>('closed');
   const [muted, setMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hasMedia = Boolean(props.currentScene?.previewUrl.trim());
+  const visibleScene = props.isActive ? props.currentScene : null;
+  const hasMedia = Boolean(visibleScene?.previewUrl.trim());
   const browserOutputActive =
     props.isActive && props.outputMode === 'webrtc' && props.worldId !== null;
   const outputActive = props.isActive && props.outputMode !== null;
@@ -49,7 +50,7 @@ export function LiveOutputView(props: LiveOutputViewProps) {
       endpoint: props.output?.endpoint || current.endpoint,
       title: props.output?.title || current.title,
     }));
-  }, [props.output?.endpoint, props.output?.mode, props.output?.platform, props.output?.title]);
+  }, [props.output]);
 
   useEffect(() => {
     if (!browserOutputActive || !props.worldId || !videoRef.current) {
@@ -78,7 +79,16 @@ export function LiveOutputView(props: LiveOutputViewProps) {
 
   return (
     <div className="relative h-full min-h-[100dvh] w-full overflow-hidden bg-background">
-      <PreviewCanvas {...props} showRunCta={false} />
+      <PreviewCanvas
+        {...props}
+        currentScene={visibleScene}
+        generatingChoice={false}
+        showRunCta={false}
+        canOpenBranchCanvas={false}
+        onOpenBranchCanvas={() => undefined}
+        onOptionSelect={(_, optionId) => props.onOptionSelect(optionId)}
+        onStop={() => props.onAction('stop')}
+      />
       {browserOutputActive ? (
         <video
           ref={videoRef}

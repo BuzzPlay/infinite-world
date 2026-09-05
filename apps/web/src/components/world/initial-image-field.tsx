@@ -1,11 +1,8 @@
-import { useId, useRef, useState } from 'react';
-import { ImagePlus, Upload } from 'lucide-react';
 import type { GenerationSettings } from '@infinite-world/api-contract';
-
-import { Button } from '../ui/button';
-import { Field, FieldDescription, FieldLabel } from '../ui/field';
-import { Input } from '../ui/input';
+import { ImagePlus, Upload, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/use-translation';
+import { Field, FieldDescription, FieldLabel } from '../ui/field';
 import { initialImageChanges } from './model-options';
 
 interface InitialImageFieldProps {
@@ -20,7 +17,6 @@ export function InitialImageField({
   className,
 }: InitialImageFieldProps) {
   const { t } = useTranslation();
-  const inputId = useId();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
@@ -31,7 +27,10 @@ export function InitialImageField({
 
   return (
     <Field className={className}>
-      <FieldLabel htmlFor={inputId}>{t('project.initialImage')}</FieldLabel>
+      <FieldLabel>
+        {t('project.initialImage')}
+        <span className="text-xs font-normal text-muted-foreground">{t('common.optional')}</span>
+      </FieldLabel>
       <input
         ref={imageInputRef}
         className="hidden"
@@ -49,41 +48,44 @@ export function InitialImageField({
           event.currentTarget.value = '';
         }}
       />
-      <div className="grid gap-2 rounded-lg border border-dashed border-border p-2">
+      <div className="relative">
+        <button
+          type="button"
+          className="grid min-h-16 w-full gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-left transition-colors hover:border-ring hover:bg-muted/30"
+          onClick={() => imageInputRef.current?.click()}
+          aria-label={t('project.uploadInitialImage')}
+        >
+          {generation.initialImageUrl ? (
+            // biome-ignore lint/performance/noImgElement: Uploaded images use local data URLs.
+            <img
+              src={generation.initialImageUrl}
+              alt={t('project.initialImage')}
+              className="max-h-32 w-full rounded-md object-contain"
+            />
+          ) : null}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ImagePlus size={15} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span>{t('project.uploadInitialImage')}</span>
+            <span className="ml-auto grid size-7 place-items-center rounded-md text-foreground">
+              <Upload size={15} aria-hidden="true" />
+            </span>
+          </div>
+        </button>
         {generation.initialImageUrl ? (
-          <img
-            src={generation.initialImageUrl}
-            alt={t('project.initialImage')}
-            className="max-h-40 w-full rounded-md object-contain"
-          />
-        ) : null}
-        <div className="flex items-center gap-2">
-          <ImagePlus size={15} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-          <Input
-            id={inputId}
-            className="h-8 min-w-0 border-0 bg-transparent px-0 shadow-none focus:border-0 focus:ring-0"
-            aria-label={t('project.initialImageUrl')}
-            value={generation.initialImageUrl ?? ''}
-            onChange={(event) => updateInitialImage(event.target.value)}
-            placeholder={t('project.imageUrlUpload')}
-          />
-          <Button
+          <button
             type="button"
-            size="icon-sm"
-            variant="ghost"
-            title={t('project.uploadInitialImage')}
-            aria-label={t('project.uploadInitialImage')}
-            onClick={() => imageInputRef.current?.click()}
+            className="absolute right-2 top-2 grid size-7 place-items-center rounded-md border border-border bg-background/90 text-foreground shadow-xs transition-colors hover:bg-muted"
+            onClick={() => updateInitialImage('')}
+            aria-label={t('project.clearInitialImage')}
+            title={t('project.clearInitialImage')}
           >
-            <Upload size={15} aria-hidden="true" />
-          </Button>
-        </div>
+            <X size={15} aria-hidden="true" />
+          </button>
+        ) : null}
       </div>
       {imageError ? (
         <FieldDescription className="text-destructive">{imageError}</FieldDescription>
-      ) : (
-        <FieldDescription>{t('project.initialImageDescription')}</FieldDescription>
-      )}
+      ) : null}
     </Field>
   );
 }

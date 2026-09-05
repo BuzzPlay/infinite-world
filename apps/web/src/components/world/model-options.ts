@@ -1,8 +1,8 @@
 import type { GenerationSettings } from '@infinite-world/api-contract';
 import {
-  modelsForCapability,
   type ModelCapability,
   type ModelProvider,
+  modelsForCapability,
   videoProfileFor,
 } from '@infinite-world/api-contract/model-catalog';
 
@@ -58,9 +58,7 @@ export function videoModelChanges(
     profile.longDuration && duration > profile.longDuration.aboveSeconds
       ? profile.longDuration
       : null;
-  const frameRate = profile.frameRates.includes(generation.frameRate)
-    ? generation.frameRate
-    : profile.defaults.frameRate;
+  const frameRate = profile.defaults.frameRate;
   const resolution =
     generation.resolution && profile.resolutions.includes(generation.resolution)
       ? generation.resolution
@@ -79,6 +77,29 @@ export function videoModelChanges(
     resolution: longDuration?.resolution ?? resolution,
     aspectRatio,
     enableAudio: profile.supportsAudio ? generation.enableAudio : false,
+  };
+}
+
+export function videoDurationChanges(
+  generation: GenerationSettings,
+  durationSeconds: number,
+): Partial<GenerationSettings> {
+  const profile = videoProfileFor(generation.model);
+  if (!profile?.durations.includes(durationSeconds)) return {};
+
+  const longDuration =
+    profile.longDuration && durationSeconds > profile.longDuration.aboveSeconds
+      ? profile.longDuration
+      : null;
+  const resolution =
+    generation.resolution && profile.resolutions.includes(generation.resolution)
+      ? generation.resolution
+      : profile.defaults.resolution;
+
+  return {
+    durationSeconds,
+    frameRate: longDuration?.frameRate ?? profile.defaults.frameRate,
+    resolution: longDuration?.resolution ?? resolution,
   };
 }
 

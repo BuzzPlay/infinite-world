@@ -32,7 +32,12 @@ export function deduplicateProjects(projects: ProjectRecord[]): ProjectRecord[] 
   const seenWorldIds = new Set<string>();
   const seenConfigs = new Set<string>();
   return projects.filter((project) => {
-    const configKey = JSON.stringify([project.name, project.prompt, project.generation]);
+    const configKey = JSON.stringify([
+      project.interactionType,
+      project.name,
+      project.prompt,
+      project.generation,
+    ]);
     if (seenWorldIds.has(project.worldId) || seenConfigs.has(configKey)) return false;
     seenWorldIds.add(project.worldId);
     seenConfigs.add(configKey);
@@ -46,6 +51,7 @@ function isProjectRecord(value: unknown): value is ProjectRecord {
   return (
     typeof project.id === 'string' &&
     typeof project.worldId === 'string' &&
+    project.interactionType === 'text' &&
     typeof project.name === 'string' &&
     typeof project.prompt === 'string' &&
     typeof project.generation === 'object' &&

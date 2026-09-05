@@ -1,17 +1,23 @@
 'use client';
 
-import { useState, type FocusEvent } from 'react';
-import { Check, Film, LoaderCircle, Sparkles, Trash2, type LucideIcon } from 'lucide-react';
-import { ArrowSquareOutIcon as ExternalLink } from '@phosphor-icons/react';
-
-import type { ModelDefinition } from '@infinite-world/api-contract/model-catalog';
 import type { ProviderSettings, UpdateProviderSettingsRequest } from '@infinite-world/api-contract';
+import type { ModelCapability, ModelDefinition } from '@infinite-world/api-contract/model-catalog';
 import { modelsForCapability } from '@infinite-world/api-contract/model-catalog';
-
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import {
+  CheckCircleIcon as Check,
+  ArrowSquareOutIcon as ExternalLink,
+  EyeIcon as Eye,
+  EyeSlashIcon as EyeSlash,
+  XIcon as Remove,
+  WarningCircleIcon as Warning,
+} from '@phosphor-icons/react';
+import { Film, type LucideIcon, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '../../i18n/use-translation';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../ui/input-group';
+import { Loading } from '../ui/loading';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { errorToast, successToast } from '../ui/toast';
 import { ProviderModelDetail } from './provider-model-detail';
 
 type ProviderKey = 'google' | 'fal';
@@ -22,6 +28,7 @@ interface ModelSettingsFormProps {
   settings: ProviderSettings;
   loading: boolean;
   busy: boolean;
+  defaultCapability?: ModelCapability;
   onSave: (settings: Partial<UpdateProviderSettingsRequest>) => Promise<void>;
 }
 
@@ -37,9 +44,23 @@ interface ProviderModelGroup {
 
 type ProviderDefinition = Omit<ProviderModelGroup, 'models'>;
 
-export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSettingsFormProps) {
+export function ModelSettingsForm({
+  settings,
+  loading,
+  busy,
+  defaultCapability = 'vision',
+  onSave,
+}: ModelSettingsFormProps) {
   const { t } = useTranslation('settings');
   const [drafts, setDrafts] = useState<Record<ProviderKey, string>>({ google: '', fal: '' });
+  const [savedValues, setSavedValues] = useState<Record<ProviderKey, string>>({
+    google: '',
+    fal: '',
+  });
+  const [revealed, setRevealed] = useState<Record<ProviderKey, boolean>>({
+    google: false,
+    fal: false,
+  });
   const [statuses, setStatuses] = useState<Record<ProviderKey, SaveStatus>>({
     google: 'idle',
     fal: 'idle',
@@ -80,32 +101,46 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
     models: modelsForCapability('video').filter((model) => model.provider === 'fal'),
   };
 
-  const saveProviderKey = async (provider: ProviderModelGroup, explicitValue?: string) => {
-    const value = explicitValue ?? drafts[provider.key].trim();
-    if (!value && explicitValue === undefined) return;
+  const saveProviderKey = async (
+    provider: ProviderModelGroup,
+    explicitValue?: string,
+    allowEmpty = false,
+  ) => {
+    const value = (explicitValue ?? drafts[provider.key]).trim();
+    if (!value && !allowEmpty) return;
+    if (!allowEmpty && value === savedValues[provider.key]) {
+      setStatuses((current) => ({ ...current, [provider.key]: 'saved' }));
+      return;
+    }
     if (statuses[provider.key] === 'saving') return;
 
     setStatuses((current) => ({ ...current, [provider.key]: 'saving' }));
     setErrors((current) => ({ ...current, [provider.key]: null }));
     try {
       await onSave({ [provider.keyField]: value });
-      setDrafts((current) => ({ ...current, [provider.key]: '' }));
-      setStatuses((current) => ({ ...current, [provider.key]: 'saved' }));
+      setDrafts((current) => ({ ...current, [provider.key]: value }));
+      setSavedValues((current) => ({ ...current, [provider.key]: value }));
+      setStatuses((current) => ({ ...current, [provider.key]: value ? 'saved' : 'idle' }));
+      successToast(
+        value
+          ? t('providerKeySaved', { provider: provider.label })
+          : t('providerKeyCleared', { provider: provider.label }),
+        { id: `provider-key-${provider.key}` },
+      );
     } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : t('saveFailed');
       setStatuses((current) => ({ ...current, [provider.key]: 'error' }));
-      setErrors((current) => ({
-        ...current,
-        [provider.key]: saveError instanceof Error ? saveError.message : t('saveFailed'),
-      }));
+      setErrors((current) => ({ ...current, [provider.key]: message }));
+      errorToast(t('providerKeySaveFailed', { provider: provider.label }), {
+        id: `provider-key-${provider.key}`,
+        description: message,
+      });
     }
   };
 
-  const handleProviderBlur = (
-    provider: ProviderModelGroup,
-    event: FocusEvent<HTMLFieldSetElement>,
-  ) => {
-    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-    void saveProviderKey(provider);
+  const handleProviderBlur = (provider: ProviderModelGroup, value: string) => {
+    if (!value.trim()) return;
+    void saveProviderKey(provider, value.trim());
   };
 
   const changeProviderKey = (provider: ProviderModelGroup, value: string) => {
@@ -116,11 +151,17 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
 
   const clearProviderKey = (provider: ProviderModelGroup) => {
     setDrafts((current) => ({ ...current, [provider.key]: '' }));
-    void saveProviderKey(provider, '');
+    setSavedValues((current) => ({ ...current, [provider.key]: '' }));
+    setRevealed((current) => ({ ...current, [provider.key]: false }));
+    void saveProviderKey(provider, '', true);
+  };
+
+  const toggleProviderKey = (provider: ProviderModelGroup) => {
+    setRevealed((current) => ({ ...current, [provider.key]: !current[provider.key] }));
   };
 
   return (
-    <Tabs defaultValue="vision" className="min-w-0 gap-4">
+    <Tabs defaultValue={defaultCapability} className="min-w-0 gap-4">
       <TabsList
         type="underline"
         animate="none"
@@ -166,12 +207,14 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
                 provider={googleVisionProvider}
                 configured={settings.googleApiKeyConfigured}
                 value={drafts.google}
+                revealed={revealed.google}
                 status={statuses.google}
                 error={errors.google}
                 disabled={disabled}
                 onChange={(value) => changeProviderKey(googleVisionProvider, value)}
                 onClear={() => clearProviderKey(googleVisionProvider)}
-                onBlur={(event) => handleProviderBlur(googleVisionProvider, event)}
+                onBlur={(value) => handleProviderBlur(googleVisionProvider, value)}
+                onToggleReveal={() => toggleProviderKey(googleVisionProvider)}
                 onOpenModels={() => setSelectedProvider('google')}
                 modelCountLabel={modelCountLabel(t, googleVisionProvider.models.length)}
               />
@@ -179,12 +222,14 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
                 provider={falVisionProvider}
                 configured={settings.falApiKeyConfigured}
                 value={drafts.fal}
+                revealed={revealed.fal}
                 status={statuses.fal}
                 error={errors.fal}
                 disabled={disabled}
                 onChange={(value) => changeProviderKey(falVisionProvider, value)}
                 onClear={() => clearProviderKey(falVisionProvider)}
-                onBlur={(event) => handleProviderBlur(falVisionProvider, event)}
+                onBlur={(value) => handleProviderBlur(falVisionProvider, value)}
+                onToggleReveal={() => toggleProviderKey(falVisionProvider)}
                 onOpenModels={() => setSelectedProvider('fal')}
                 modelCountLabel={modelCountLabel(t, falVisionProvider.models.length)}
               />
@@ -210,12 +255,14 @@ export function ModelSettingsForm({ settings, loading, busy, onSave }: ModelSett
             provider={falVideoProvider}
             configured={settings.falApiKeyConfigured}
             value={drafts.fal}
+            revealed={revealed.fal}
             status={statuses.fal}
             error={errors.fal}
             disabled={disabled}
             onChange={(value) => changeProviderKey(falVideoProvider, value)}
             onClear={() => clearProviderKey(falVideoProvider)}
-            onBlur={(event) => handleProviderBlur(falVideoProvider, event)}
+            onBlur={(value) => handleProviderBlur(falVideoProvider, value)}
+            onToggleReveal={() => toggleProviderKey(falVideoProvider)}
             onOpenModels={() => setSelectedProvider('fal')}
             modelCountLabel={modelCountLabel(t, falVideoProvider.models.length)}
           />
@@ -229,24 +276,28 @@ function ProviderRow({
   provider,
   configured,
   value,
+  revealed,
   status,
   error,
   disabled,
   onChange,
   onClear,
   onBlur,
+  onToggleReveal,
   onOpenModels,
   modelCountLabel,
 }: {
   provider: ProviderModelGroup;
   configured: boolean;
   value: string;
+  revealed: boolean;
   status: SaveStatus;
   error: string | null;
   disabled: boolean;
   onChange: (value: string) => void;
   onClear: () => void;
-  onBlur: (event: FocusEvent<HTMLFieldSetElement>) => void;
+  onBlur: (value: string) => void;
+  onToggleReveal: () => void;
   onOpenModels: () => void;
   modelCountLabel: string;
 }) {
@@ -255,7 +306,7 @@ function ProviderRow({
   return (
     <div className="grid gap-1.5 py-1.5 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] sm:items-start sm:gap-4">
       <div className="flex min-w-0 items-start gap-2.5">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
           <ProviderIcon className="size-4" aria-hidden="true" />
         </div>
         <div className="min-w-0 pt-0.5">
@@ -274,7 +325,7 @@ function ProviderRow({
           </div>
           <button
             type="button"
-            className="mt-0.5 block cursor-pointer text-xs tabular-nums text-muted-foreground/60 underline underline-offset-2 transition-colors hover:text-foreground"
+            className="mt-0.5 block cursor-pointer text-xs tabular-nums text-muted-foreground/50 underline underline-offset-2 transition-colors hover:text-foreground"
             onClick={onOpenModels}
             disabled={disabled}
             aria-label={t('viewProviderModels', { provider: provider.label })}
@@ -285,14 +336,18 @@ function ProviderRow({
       </div>
       <SecretInput
         value={value}
+        revealed={revealed}
         configured={configured}
         status={status}
         error={error}
         onChange={onChange}
         onClear={onClear}
         onBlur={onBlur}
-        placeholder={t('pasteProviderKey')}
+        onToggleReveal={onToggleReveal}
+        placeholder={t('pasteProviderKey', { provider: provider.label })}
         clearLabel={t('clearProviderApiKey', { provider: provider.label })}
+        showLabel={t('showProviderApiKey', { provider: provider.label })}
+        hideLabel={t('hideProviderApiKey', { provider: provider.label })}
         disabled={disabled}
       />
     </div>
@@ -307,12 +362,14 @@ function ProviderKeySection({
   provider: ProviderModelGroup;
   configured: boolean;
   value: string;
+  revealed: boolean;
   status: SaveStatus;
   error: string | null;
   disabled: boolean;
   onChange: (value: string) => void;
   onClear: () => void;
-  onBlur: (event: FocusEvent<HTMLFieldSetElement>) => void;
+  onBlur: (value: string) => void;
+  onToggleReveal: () => void;
   onOpenModels: () => void;
   modelCountLabel: string;
 }) {
@@ -328,73 +385,125 @@ function ProviderKeySection({
 
 function SecretInput({
   value,
+  revealed,
   configured,
   status,
   error,
   onChange,
   onClear,
   onBlur,
+  onToggleReveal,
   placeholder,
   clearLabel,
+  showLabel,
+  hideLabel,
   disabled,
 }: {
   value: string;
+  revealed: boolean;
   configured: boolean;
   status: SaveStatus;
   error: string | null;
   onChange: (value: string) => void;
   onClear: () => void;
-  onBlur: (event: FocusEvent<HTMLFieldSetElement>) => void;
+  onBlur: (value: string) => void;
+  onToggleReveal: () => void;
   placeholder: string;
   clearLabel: string;
+  showLabel: string;
+  hideLabel: string;
   disabled: boolean;
 }) {
   const { t } = useTranslation('settings');
   const statusLabel = saveStatusLabel(t, status);
+  const savedAndIdle = configured && !value && status === 'idle';
 
   return (
-    <fieldset className="m-0 w-full min-w-0 border-0 p-0" onBlur={onBlur}>
-      <div className="flex min-w-0 items-center gap-2">
-        <Input
-          className="min-w-0 flex-1"
-          type="password"
-          autoComplete="new-password"
+    // biome-ignore lint/a11y/noStaticElementInteractions: Blur is observed across the input group so its internal buttons do not trigger a save.
+    <div
+      className="min-w-0 space-y-1.5"
+      onBlur={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        onBlur(value);
+      }}
+    >
+      <InputGroup data-disabled={disabled || undefined}>
+        <InputGroupInput
+          type={revealed ? 'text' : 'password'}
+          autoComplete="off"
+          spellCheck={false}
+          data-1p-ignore=""
+          data-lpignore="true"
+          data-form-type="other"
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
           placeholder={configured ? t('savedKeyReplace') : placeholder}
           disabled={disabled}
+          aria-invalid={status === 'error'}
         />
-        {status !== 'idle' ? (
-          <span
-            role="status"
-            title={statusLabel}
-            aria-label={statusLabel}
-            className="flex size-7 shrink-0 items-center justify-center text-muted-foreground"
-          >
-            {status === 'saving' ? <LoaderCircle className="size-3.5 animate-spin" /> : null}
-            {status === 'saved' ? <Check className="size-3.5 text-brand-green" /> : null}
-            {status === 'error' ? <span className="text-xs text-destructive">!</span> : null}
-          </span>
-        ) : configured && !value ? (
-          <Check className="size-3.5 shrink-0 text-brand-green" aria-hidden="true" />
-        ) : null}
-        {configured || value ? (
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            title={clearLabel}
-            aria-label={clearLabel}
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={onClear}
-            disabled={disabled || status === 'saving'}
-          >
-            <Trash2 className="size-3.5" aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
+        <InputGroupAddon align="inline-end" className="gap-1">
+          {status !== 'idle' ? (
+            <KeyStatusGlyph status={status} label={statusLabel} />
+          ) : savedAndIdle ? (
+            <>
+              <span
+                role="status"
+                title={t('saved')}
+                aria-label={t('saved')}
+                className="flex shrink-0 items-center"
+              >
+                <Check weight="fill" className="size-3.5 shrink-0 text-brand-green" />
+              </span>
+              <InputGroupButton
+                size="icon-xs"
+                onClick={onClear}
+                title={clearLabel}
+                aria-label={clearLabel}
+                className="text-muted-foreground/60 hover:text-destructive"
+                disabled={disabled}
+              >
+                <Remove className="size-3.5" />
+              </InputGroupButton>
+            </>
+          ) : null}
+          {value ? (
+            <InputGroupButton
+              size="icon-xs"
+              onClick={onToggleReveal}
+              title={revealed ? hideLabel : showLabel}
+              aria-label={revealed ? hideLabel : showLabel}
+              aria-pressed={revealed}
+              className="text-muted-foreground/60 hover:text-foreground"
+              disabled={disabled}
+            >
+              {revealed ? <EyeSlash className="size-3.5" /> : <Eye className="size-3.5" />}
+            </InputGroupButton>
+          ) : null}
+        </InputGroupAddon>
+      </InputGroup>
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
-    </fieldset>
+    </div>
+  );
+}
+
+function KeyStatusGlyph({ status, label }: { status: SaveStatus; label: string }) {
+  if (status === 'idle') return null;
+  return (
+    <span role="status" title={label} aria-label={label} className="flex shrink-0 items-center">
+      {status === 'saving' ? <Loading className="size-3.5 shrink-0" /> : null}
+      {status === 'saved' ? (
+        <Check weight="fill" className="size-3.5 shrink-0 text-brand-green" />
+      ) : null}
+      {status === 'error' ? (
+        <Warning weight="fill" className="size-3.5 shrink-0 text-brand-red" />
+      ) : null}
+    </span>
   );
 }
 

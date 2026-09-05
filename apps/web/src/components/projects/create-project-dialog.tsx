@@ -92,6 +92,9 @@ export function CreateProjectDialog({
         <form className="grid min-w-0" onSubmit={(event) => void submit(event)}>
           <WorldSetupForm
             draft={config}
+            onInteractionTypeChange={(interactionType) =>
+              setConfig((current) => ({ ...current, interactionType }))
+            }
             onNameChange={(name) => setConfig((current) => ({ ...current, name }))}
             onPromptChange={(prompt) => setConfig((current) => ({ ...current, prompt }))}
             onGenerationChange={updateGeneration}

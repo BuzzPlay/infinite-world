@@ -1,21 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
 import type {
+  ProviderSettings,
   RealtimeEvent,
   RunSnapshot,
   SceneSnapshot,
-  ProviderSettings,
   UpdateProviderSettingsRequest,
   WorldConfig,
   WorldResponse,
   WorldSnapshot,
-  LiveOutputSettings,
 } from '@infinite-world/api-contract';
+import type { ModelCapability } from '@infinite-world/api-contract/model-catalog';
 import { isModelConfigured } from '@infinite-world/api-contract/model-catalog';
-
-import { Alert, AlertActions, AlertDescription } from '@/components/ui/alert';
+import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { PageShell } from '@/components/layout/page-shell';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
@@ -23,36 +21,59 @@ import {
   CreateProjectDialog,
   type CreateProjectInput,
 } from '@/components/projects/create-project-dialog';
+import { DeleteProjectDialog } from '@/components/projects/delete-project-dialog';
 import type { ProjectRecord } from '@/components/projects/project-types';
 import { projectFromWorld } from '@/components/projects/project-types';
 import { RenameProjectDialog } from '@/components/projects/rename-project-dialog';
+import { ModelSettingsDialog } from '@/components/settings/model-settings-dialog';
 import { ProviderSettingsPage } from '@/components/settings/provider-settings-page';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { dismissToast, errorToast, successToast, warningToast } from '@/components/ui/toast';
+import { generationModelOptionsFor, visionModelOptionsFor } from '@/components/world/model-options';
 import { WorldDashboard } from '@/components/world/world-dashboard';
 import { defaultWorldConfig } from '@/components/world/world-defaults';
-import { generationModelOptionsFor, visionModelOptionsFor } from '@/components/world/model-options';
-import { runStateRank } from '@/components/world/run-state';
+import { useTranslation } from '@/i18n/use-translation';
 import {
+  activateScene,
   chooseSceneOption,
   createWorld,
+  deleteRunVersion,
+  deleteSceneBranch,
+  deleteWorld,
   getCurrentWorld,
   getProviderSettings,
   listWorlds,
+  regenerateSceneOptions,
   restartRun,
   selectWorld,
   startRun,
   stopRun,
   subscribeToEvents,
-  subscribeToRunMetrics,
   updateProviderSettings,
+  updateRunConfig,
   updateWorld,
 } from '@/lib/api';
 import { deduplicateProjects, loadProjects, saveProjects } from '@/lib/project-store';
-import { useTranslation } from '@/i18n/use-translation';
+
 type AppAction = 'start' | 'stop' | 'restart';
-type BusyAction = AppAction | 'save' | 'create' | 'select' | 'rename' | 'choice';
+type BusyAction =
+  | AppAction
+  | 'save'
+  | 'create'
+  | 'select'
+  | 'rename'
+  | 'delete-project'
+  | 'activate-scene'
+  | 'choice'
+  | 'regenerate-options'
+  | 'delete-branch'
+  | 'delete-version';
+
+type NoticeTone = 'success' | 'warning' | 'error';
+
+const WORKSPACE_NOTICE_TOAST_ID = 'workspace-notice';
 
 function WorldConsole() {
   const { t } = useTranslation();
@@ -78,24 +99,55 @@ function WorldConsole() {
   const [busy, setBusy] = useState<BusyAction | null>(null);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [projectToRename, setProjectToRename] = useState<ProjectRecord | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<ProjectRecord | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [modelSettingsCapability, setModelSettingsCapability] = useState<ModelCapability | null>(
+    null,
+  );
   const [notice, setNotice] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<NoticeTone>('warning');
   const runIdRef = useRef<string | null>(null);
   const runStartedAtRef = useRef<string | null>(null);
+  const runRevisionRef = useRef(-1);
   const worldIdRef = useRef<string | null>(null);
+  const choiceInFlightRef = useRef(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const applyRun = useCallback((nextRun: RunSnapshot) => {
-    const isNewRun =
-      runIdRef.current !== nextRun.id || runStartedAtRef.current !== nextRun.startedAt;
-    if (isNewRun) setScenes(nextRun.scenes);
-    runStartedAtRef.current = nextRun.startedAt;
-    runIdRef.current = nextRun.id;
-    setRun((current) => preferLatestRun(current, nextRun));
-    if (!isNewRun && nextRun.scenes.length) {
-      setScenes((current) => mergeSceneList(current, nextRun.scenes));
-    }
+  const syncRunGeneration = useCallback((nextRun: RunSnapshot) => {
+    const generation = activeVersionGeneration(nextRun);
+    if (!generation) return;
+    setWorld((current) => (current?.id === nextRun.worldId ? { ...current, generation } : current));
+    setDraft((current) => ({ ...current, generation }));
   }, []);
+
+  const applyRun = useCallback(
+    (nextRun: RunSnapshot) => {
+      const switchedVersion = runIdRef.current !== null && runIdRef.current !== nextRun.id;
+      const isNewRun =
+        runIdRef.current !== nextRun.id || runStartedAtRef.current !== nextRun.startedAt;
+      if (!isNewRun && nextRun.revision < runRevisionRef.current) return;
+      runStartedAtRef.current = nextRun.startedAt;
+      runIdRef.current = nextRun.id;
+      runRevisionRef.current = nextRun.revision;
+      setRun(nextRun);
+      setScenes(nextRun.scenes);
+      if (switchedVersion) syncRunGeneration(nextRun);
+    },
+    [syncRunGeneration],
+  );
+
+  const replaceRun = useCallback(
+    (nextRun: RunSnapshot) => {
+      const switchedVersion = runIdRef.current !== null && runIdRef.current !== nextRun.id;
+      runStartedAtRef.current = nextRun.startedAt;
+      runIdRef.current = nextRun.id;
+      runRevisionRef.current = nextRun.revision;
+      setRun(nextRun);
+      setScenes(nextRun.scenes);
+      if (switchedVersion) syncRunGeneration(nextRun);
+    },
+    [syncRunGeneration],
+  );
 
   const syncProject = useCallback((response: WorldResponse, existingProjectId?: string) => {
     setProjects((current) => {
@@ -104,11 +156,7 @@ function WorldConsole() {
         (existingProjectId
           ? current.find((project) => project.id === existingProjectId)
           : undefined);
-      const nextProject = projectFromWorld(
-        response.world,
-        response.providerApiKeyConfigured,
-        existing,
-      );
+      const nextProject = projectFromWorld(response.world, existing);
       const next = deduplicateProjects([
         nextProject,
         ...current.filter(
@@ -128,10 +176,6 @@ function WorldConsole() {
       applyRun(response.run);
       setDraft(worldToConfig(response.world));
       syncProject(response, existingProjectId);
-      const currentScene = response.run.currentScene;
-      if (currentScene) {
-        setScenes((current) => mergeScenes(current, currentScene));
-      }
     },
     [applyRun, syncProject],
   );
@@ -140,8 +184,9 @@ function WorldConsole() {
     (nextWorld: WorldSnapshot, nextRun: RunSnapshot) => {
       setWorld(nextWorld);
       applyRun(nextRun);
+      syncRunGeneration(nextRun);
     },
-    [applyRun],
+    [applyRun, syncRunGeneration],
   );
 
   const applyEvent = useCallback(
@@ -157,6 +202,7 @@ function WorldConsole() {
           worldIdRef.current = null;
           runIdRef.current = null;
           runStartedAtRef.current = null;
+          runRevisionRef.current = -1;
           setWorld(null);
           setRun(null);
           setScenes([]);
@@ -166,15 +212,17 @@ function WorldConsole() {
       }
       if (worldIdRef.current && event.run.worldId !== worldIdRef.current) return;
       if (runIdRef.current && event.run.id !== runIdRef.current) return;
-      applyRun(event.run);
-      if (event.type === 'scene.ready') {
-        setScenes((current) => mergeScenes(current, event.scene));
+      if (event.type === 'scene.deleted' || event.type === 'version.deleted') {
+        replaceRun(event.run);
+        return;
       }
+      applyRun(event.run);
       if (event.type === 'run.error') {
+        setNoticeTone('error');
         setNotice(event.message);
       }
     },
-    [applyRun, applyWorldResponse],
+    [applyRun, applyWorldResponse, replaceRun],
   );
 
   useEffect(() => {
@@ -196,7 +244,7 @@ function WorldConsole() {
         setProjects((current) => {
           const nextProjects = response.worlds.map((project) => {
             const existing = current.find((item) => item.worldId === project.id);
-            return projectFromWorld(project, response.providerApiKeyConfigured, existing);
+            return projectFromWorld(project, existing);
           });
           saveProjects(nextProjects);
           return nextProjects;
@@ -243,20 +291,21 @@ function WorldConsole() {
     return () => window.clearInterval(timer);
   }, [applyRun, currentRunState, currentWorldId, syncProject]);
 
-  useEffect(() => {
-    if (!currentWorldId || !isLiveRunState(currentRunState)) return;
-    return subscribeToRunMetrics(currentWorldId, (metrics) => {
-      setRun((current) => {
-        if (!current || current.id !== metrics.runId) return current;
-        return { ...current, state: metrics.state, metrics: metrics.metrics };
-      });
-    });
-  }, [currentRunState, currentWorldId]);
-
   const isDirty = useMemo(() => {
     if (!world) return false;
     return JSON.stringify(draft) !== JSON.stringify(worldToConfig(world));
   }, [draft, world]);
+
+  const refreshRun = useCallback(async () => {
+    const expectedWorldId = worldIdRef.current;
+    if (!expectedWorldId) return;
+    try {
+      const response = await getCurrentWorld();
+      if (response.world.id === expectedWorldId) applyRun(response.run);
+    } catch {
+      // Realtime updates remain the primary source while a transient refresh fails.
+    }
+  }, [applyRun]);
 
   const saveWorldConfig = async (config: WorldConfig) => {
     setBusy('save');
@@ -265,8 +314,10 @@ function WorldConsole() {
       const response = world ? await updateWorld(world.id, config) : await createWorld(config);
       applyWorldResponse(response, activeProjectId ?? undefined);
       setNotice(t('dashboard.projectSaved'));
+      setNoticeTone('success');
       return true;
     } catch (error) {
+      setNoticeTone('error');
       setNotice(error instanceof Error ? error.message : t('dashboard.requestFailed'));
       return false;
     } finally {
@@ -274,12 +325,32 @@ function WorldConsole() {
     }
   };
 
-  const perform = async (action: AppAction, output?: LiveOutputSettings) => {
+  const saveRunGeneration = async (changes: Partial<WorldConfig['generation']>) => {
+    if (!world || busy !== null) return;
+    setBusy('save');
+    setNotice(null);
+    try {
+      const response = await updateRunConfig(world.id, changes);
+      const generation = activeVersionGeneration(response.run) ?? {
+        ...draft.generation,
+        ...changes,
+      };
+      applyRunResponse({ ...world, generation }, response.run);
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('dashboard.requestFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const perform = async (action: AppAction) => {
     setBusy(action);
     setNotice(null);
     try {
       if (action === 'start' || action === 'restart') {
         if (draft.generation.model === 'none') {
+          setNoticeTone('warning');
           setNotice(t('dashboard.selectVideoModel'));
           return;
         }
@@ -293,6 +364,7 @@ function WorldConsole() {
             falApiKeyConfigured: providerSettings.falApiKeyConfigured,
           })
         ) {
+          setNoticeTone('warning');
           setNotice(t('dashboard.configureProvider'));
           return;
         }
@@ -306,10 +378,7 @@ function WorldConsole() {
           applyWorldResponse(response);
           activeWorld = response.world;
         }
-        const response = await startRun(
-          activeWorld.id,
-          output ? { output } : { outputMode: 'webrtc' },
-        );
+        const response = await startRun(activeWorld.id);
         applyRunResponse(activeWorld, response.run);
       } else if (action === 'stop' && world) {
         applyRunResponse(world, (await stopRun(world.id)).run);
@@ -323,6 +392,7 @@ function WorldConsole() {
         applyRunResponse(activeWorld, (await restartRun(activeWorld.id)).run);
       }
     } catch (error) {
+      setNoticeTone('error');
       setNotice(error instanceof Error ? error.message : t('dashboard.requestFailed'));
     } finally {
       setBusy(null);
@@ -336,8 +406,10 @@ function WorldConsole() {
       applyWorldResponse(await createWorld(config));
       setCreateProjectOpen(false);
       setSettingsOpen(false);
+      setNoticeTone('success');
       setNotice(t('dashboard.projectCreated'));
     } catch (error) {
+      setNoticeTone('error');
       setNotice(error instanceof Error ? error.message : t('dashboard.projectCreateFailed'));
     } finally {
       setBusy(null);
@@ -361,6 +433,7 @@ function WorldConsole() {
       const currentProject = world?.id === project.worldId;
       const source = currentProject ? draft : project;
       const response = await updateWorld(project.worldId, {
+        interactionType: source.interactionType,
         name,
         prompt: source.prompt,
         generation: source.generation,
@@ -371,17 +444,17 @@ function WorldConsole() {
       } else {
         const nextProjects = deduplicateProjects(
           projects.map((item) =>
-            item.id === project.id
-              ? projectFromWorld(response.world, response.providerApiKeyConfigured, item)
-              : item,
+            item.id === project.id ? projectFromWorld(response.world, item) : item,
           ),
         );
         setProjects(nextProjects);
         saveProjects(nextProjects);
       }
+      setNoticeTone('success');
       setNotice(t('dashboard.projectRenamed'));
       return true;
     } catch (error) {
+      setNoticeTone('error');
       setNotice(error instanceof Error ? error.message : t('dashboard.projectRenameFailed'));
       return false;
     } finally {
@@ -389,14 +462,137 @@ function WorldConsole() {
     }
   };
 
-  const chooseOption = async (optionId: string) => {
-    if (!world || !run || run.state !== 'running') return;
+  const removeProject = async (project: ProjectRecord) => {
+    if (busy !== null) return false;
+    if (
+      project.worldId === world?.id &&
+      run &&
+      ['preparing', 'running', 'stopping'].includes(run.state)
+    ) {
+      setNoticeTone('warning');
+      setNotice(t('project.stopBeforeDelete'));
+      return false;
+    }
+
+    setBusy('delete-project');
+    setNotice(null);
+    try {
+      const response = await deleteWorld(project.worldId);
+      const remainingProjects = projects.filter(
+        (item) => item.id !== project.id && item.worldId !== project.worldId,
+      );
+      setProjects(remainingProjects);
+      saveProjects(remainingProjects);
+
+      if (project.worldId === worldIdRef.current) {
+        setSettingsOpen(false);
+        if (response.activeWorld) {
+          const nextProject = remainingProjects.find(
+            (item) => item.worldId === response.activeWorld?.world.id,
+          );
+          applyWorldResponse(response.activeWorld, nextProject?.id);
+        } else {
+          worldIdRef.current = null;
+          runIdRef.current = null;
+          runStartedAtRef.current = null;
+          runRevisionRef.current = -1;
+          setWorld(null);
+          setRun(null);
+          setScenes([]);
+          setDraft(defaultWorldConfig);
+          setActiveProjectId(null);
+        }
+      }
+
+      setNoticeTone('success');
+      setNotice(t('project.deleted'));
+      return true;
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('project.deleteFailed'));
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const chooseOption = async (sceneId: string, optionId: string) => {
+    if (!world || !run || busy !== null || choiceInFlightRef.current) return;
+    choiceInFlightRef.current = true;
     setBusy('choice');
     setNotice(null);
     try {
-      applyRunResponse(world, (await chooseSceneOption(world.id, optionId)).run);
+      applyRunResponse(world, (await chooseSceneOption(world.id, optionId, sceneId)).run);
     } catch (error) {
+      setNoticeTone('error');
       setNotice(error instanceof Error ? error.message : t('dashboard.directionFailed'));
+    } finally {
+      choiceInFlightRef.current = false;
+      setBusy(null);
+    }
+  };
+
+  const activateSceneForView = async (sceneId: string) => {
+    if (!world || busy !== null) return;
+    setBusy('activate-scene');
+    setNotice(null);
+    try {
+      applyRunResponse(world, (await activateScene(world.id, sceneId)).run);
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('dashboard.sceneActivationFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const regenerateOptions = async (sceneId: string) => {
+    if (!world || busy !== null) return;
+    setBusy('regenerate-options');
+    setNotice(null);
+    try {
+      applyRunResponse(world, (await regenerateSceneOptions(world.id, sceneId)).run);
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('dashboard.optionsRegenerationFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteVersion = async (versionId: string) => {
+    if (!world || busy !== null) return false;
+    setBusy('delete-version');
+    setNotice(null);
+    try {
+      const response = await deleteRunVersion(world.id, versionId);
+      replaceRun(response.run);
+      setNoticeTone('success');
+      setNotice(t('versions.deleted'));
+      return true;
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('versions.deleteFailed'));
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteBranch = async (sceneId: string) => {
+    if (!world || busy !== null) return null;
+    setBusy('delete-branch');
+    setNotice(null);
+    try {
+      const response = await deleteSceneBranch(world.id, sceneId);
+      replaceRun(response.run);
+      setNoticeTone('success');
+      setNotice(t('dashboard.sceneDeleted'));
+      return response.run;
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('dashboard.sceneDeleteFailed'));
+      return null;
     } finally {
       setBusy(null);
     }
@@ -404,6 +600,7 @@ function WorldConsole() {
 
   const openSettings = () => {
     setCreateProjectOpen(false);
+    setModelSettingsCapability(null);
     setSettingsOpen(true);
     setNotice(null);
   };
@@ -413,13 +610,33 @@ function WorldConsole() {
     setNotice(null);
   };
 
+  const dismissNotice = useCallback(() => {
+    setNotice(null);
+  }, []);
+
+  useEffect(() => {
+    if (!notice) {
+      dismissToast(WORKSPACE_NOTICE_TOAST_ID);
+      return;
+    }
+
+    const showToast =
+      noticeTone === 'success' ? successToast : noticeTone === 'error' ? errorToast : warningToast;
+    showToast(notice, {
+      id: WORKSPACE_NOTICE_TOAST_ID,
+      onAutoClose: dismissNotice,
+      onDismiss: dismissNotice,
+    });
+  }, [dismissNotice, notice, noticeTone]);
+
   const selectProject = async (project: ProjectRecord) => {
-    if (project.id === activeProjectId || busy !== null) return;
-    if (run && ['preparing', 'running', 'stopping'].includes(run.state)) {
-      setNotice(t('dashboard.stopBeforeSwitching'));
+    if (busy !== null) return;
+    if (project.id === activeProjectId) {
+      openWorkspace();
       return;
     }
     if (world && isDirty) {
+      setNoticeTone('warning');
       setNotice(t('dashboard.saveBeforeSwitching'));
       return;
     }
@@ -430,6 +647,7 @@ function WorldConsole() {
       const response = await selectWorld(project.worldId);
       applyWorldResponse(response, project.id);
     } catch (error) {
+      setNoticeTone('error');
       setNotice(error instanceof Error ? error.message : t('dashboard.projectLoadFailed'));
     } finally {
       setBusy(null);
@@ -437,6 +655,18 @@ function WorldConsole() {
   };
 
   const showEmptyState = !settingsOpen && !loading && !world;
+  const activeProject = projects.find((project) => project.id === activeProjectId);
+
+  const updateProjectIcon = (icon: string | undefined) => {
+    if (!activeProjectId) return;
+    setProjects((current) => {
+      const nextProjects = current.map((project) =>
+        project.id === activeProjectId ? { ...project, icon } : project,
+      );
+      saveProjects(nextProjects);
+      return nextProjects;
+    });
+  };
 
   return (
     <PageShell className={world ? 'relative bg-background' : undefined}>
@@ -453,6 +683,7 @@ function WorldConsole() {
           }}
           onProjectSelect={(project) => void selectProject(project)}
           onProjectRename={setProjectToRename}
+          onProjectDelete={setProjectToDelete}
           onOpenSettings={openSettings}
           onOpenWorkspace={openWorkspace}
           settingsActive={settingsOpen}
@@ -482,19 +713,22 @@ function WorldConsole() {
                 providerSettings.falApiKeyConfigured,
               )}
               videoModelOptions={generationModelOptionsFor(providerSettings.falApiKeyConfigured)}
-              twitchStreamKeyConfigured={providerSettings.twitchStreamKeyConfigured}
-              notice={notice}
-              onDismissNotice={() => setNotice(null)}
               previewRef={previewRef}
-              onGenerationChange={(changes) =>
-                setDraft((current) => ({
-                  ...current,
-                  generation: { ...current.generation, ...changes },
-                }))
-              }
-              onAction={(action, output) => void perform(action, output)}
-              onOptionSelect={(optionId) => void chooseOption(optionId)}
+              onGenerationChange={(changes) => void saveRunGeneration(changes)}
+              onOpenModelSettings={setModelSettingsCapability}
+              onAction={(action) => void perform(action)}
+              onActivateScene={(sceneId) => void activateSceneForView(sceneId)}
+              onOptionSelect={(sceneId, optionId) => void chooseOption(sceneId, optionId)}
+              onRegenerateOptions={(sceneId) => void regenerateOptions(sceneId)}
+              onDeleteSceneBranch={deleteBranch}
+              onDeleteVersion={deleteVersion}
+              onRefresh={refreshRun}
               onSave={saveWorldConfig}
+              projectIcon={activeProject?.icon}
+              onProjectIconChange={updateProjectIcon}
+              onRequestDeleteProject={() => {
+                if (activeProject) setProjectToDelete(activeProject);
+              }}
             />
           ) : (
             <>
@@ -504,25 +738,6 @@ function WorldConsole() {
                 title={t('common.openSidebar')}
                 aria-label={t('common.openSidebar')}
               />
-              {notice ? (
-                <Alert
-                  variant="warning"
-                  className="absolute left-4 right-4 top-4 z-20 mx-auto max-w-xl"
-                >
-                  <AlertDescription>{notice}</AlertDescription>
-                  <AlertActions>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7 text-amber-800 hover:bg-amber-500/10 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
-                      onClick={() => setNotice(null)}
-                      aria-label={t('common.dismissNotice')}
-                    >
-                      <X size={15} aria-hidden="true" />
-                    </Button>
-                  </AlertActions>
-                </Alert>
-              ) : null}
               <div className="grid h-full min-h-0 min-w-0 place-items-center px-4 py-8 sm:px-6 lg:px-12">
                 {showEmptyState ? (
                   <SectionCard
@@ -558,6 +773,17 @@ function WorldConsole() {
         onOpenChange={setCreateProjectOpen}
         onCreate={createProject}
       />
+      <ModelSettingsDialog
+        open={modelSettingsCapability !== null}
+        defaultCapability={modelSettingsCapability ?? 'vision'}
+        settings={providerSettings}
+        loading={settingsLoading}
+        busy={settingsBusy}
+        onOpenChange={(open) => {
+          if (!open) setModelSettingsCapability(null);
+        }}
+        onSave={saveProviderSettings}
+      />
       {projectToRename ? (
         <RenameProjectDialog
           project={projectToRename}
@@ -568,37 +794,31 @@ function WorldConsole() {
           onRename={renameProject}
         />
       ) : null}
+      {projectToDelete ? (
+        <DeleteProjectDialog
+          project={projectToDelete}
+          busy={busy === 'delete-project'}
+          onOpenChange={(open) => {
+            if (!open) setProjectToDelete(null);
+          }}
+          onDelete={removeProject}
+        />
+      ) : null}
     </PageShell>
   );
 }
 
 function worldToConfig(world: WorldSnapshot): WorldConfig {
-  return { name: world.name, prompt: world.prompt, generation: world.generation };
+  return {
+    interactionType: world.interactionType,
+    name: world.name,
+    prompt: world.prompt,
+    generation: world.generation,
+  };
 }
 
-function mergeScenes(current: SceneSnapshot[], next: SceneSnapshot): SceneSnapshot[] {
-  return mergeSceneList(current, [next]);
-}
-
-function mergeSceneList(current: SceneSnapshot[], next: SceneSnapshot[]): SceneSnapshot[] {
-  const scenes = new Map(current.map((scene) => [scene.id, scene]));
-  next.forEach((scene) => {
-    scenes.set(scene.id, scene);
-  });
-  return [...scenes.values()].sort((left, right) => left.sequence - right.sequence).slice(-50);
-}
-
-function preferLatestRun(current: RunSnapshot | null, next: RunSnapshot): RunSnapshot {
-  if (!current || current.id !== next.id) return next;
-  if (current.startedAt !== next.startedAt) return next;
-  if (current.sceneCount > next.sceneCount) return current;
-  if (
-    current.sceneCount === next.sceneCount &&
-    runStateRank(current.state) > runStateRank(next.state)
-  ) {
-    return current;
-  }
-  return next;
+function activeVersionGeneration(run: RunSnapshot) {
+  return run.versions.find((version) => version.id === run.id)?.generation ?? null;
 }
 
 function isLiveRunState(state: RunSnapshot['state'] | null) {
