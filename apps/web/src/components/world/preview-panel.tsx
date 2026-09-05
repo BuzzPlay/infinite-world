@@ -1,4 +1,9 @@
-import type { GenerationSettings, RunState, SceneSnapshot } from '@infinite-world/api-contract';
+import type {
+  GenerationSettings,
+  InteractionType,
+  RunState,
+  SceneSnapshot,
+} from '@infinite-world/api-contract';
 import type { ModelCapability } from '@infinite-world/api-contract/model-catalog';
 import { History, Maximize2, Play, Square, Waypoints } from 'lucide-react';
 import type { RefObject } from 'react';
@@ -7,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '../../i18n/use-translation';
 import { Button } from '../ui/button';
 import { BranchChoicePanel } from './branch-choice-panel';
+import { InteractionInputPanel } from './interaction-input-panel';
 import type { GenerationModelOption } from './model-options';
 import { RecentVersionsPanel } from './recent-versions-panel';
 import { RunModelControls } from './run-model-controls';
@@ -27,6 +33,8 @@ interface PreviewCanvasProps {
   canOpenBranchCanvas: boolean;
   canOpenVersions: boolean;
   onOptionSelect: (sceneId: string, optionId: string) => void;
+  interactionType?: InteractionType;
+  onInputSubmit?: (sceneId: string, input: string) => void;
   onRegenerateOptions?: (sceneId: string) => void;
   onOpenBranchCanvas: () => void;
   onOpenVersions: () => void;
@@ -62,6 +70,8 @@ export function PreviewCanvas({
   canOpenBranchCanvas,
   canOpenVersions,
   onOptionSelect,
+  interactionType,
+  onInputSubmit,
   onRegenerateOptions,
   onOpenBranchCanvas,
   onOpenVersions,
@@ -96,7 +106,8 @@ export function PreviewCanvas({
   const playbackActive = isActive;
   const showRunButton = showRunCta && !playbackActive;
   const showGenerating = isRunning && !hasMedia;
-  const showBranchChoices = hasMedia && Boolean(currentScene?.options.length);
+  const showBranchChoices = interactionType !== 'voice-text' && hasMedia && currentScene !== null;
+  const hasBranchChoices = Boolean(currentScene?.options.length);
   const disableSceneNavigation = busy !== null || showGenerating || generatingChoice;
   const clearAutoCountdown = useCallback(() => {
     autoCountdownRef.current = null;
@@ -125,7 +136,17 @@ export function PreviewCanvas({
       disableAuto();
       return;
     }
-    if (!autoEnabled || !showBranchChoices || busy !== null || currentSceneId === null) {
+    if (!hasBranchChoices) {
+      disableAuto();
+      return;
+    }
+    if (
+      !autoEnabled ||
+      !showBranchChoices ||
+      generatingChoice ||
+      busy !== null ||
+      currentSceneId === null
+    ) {
       clearAutoCountdown();
       return;
     }
@@ -160,6 +181,8 @@ export function PreviewCanvas({
     clearAutoCountdown,
     currentSceneId,
     disableAuto,
+    generatingChoice,
+    hasBranchChoices,
     showBranchChoices,
     state,
   ]);
@@ -324,7 +347,10 @@ export function PreviewCanvas({
 
       <div
         className={cn(
-          'pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6',
+          cn(
+            'pointer-events-none absolute inset-x-3 z-10 flex justify-center sm:inset-x-6',
+            interactionType === 'voice-text' ? 'bottom-28 sm:bottom-32' : 'bottom-4 sm:bottom-6',
+          ),
           !showBranchChoices && 'hidden',
         )}
       >
@@ -348,6 +374,15 @@ export function PreviewCanvas({
           }
         />
       </div>
+      {hasMedia && currentScene ? (
+        <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
+          <InteractionInputPanel
+            interactionType={interactionType ?? 'text'}
+            disabled={busy !== null || !playbackActive}
+            onSubmit={(input) => onInputSubmit?.(currentScene.id, input)}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

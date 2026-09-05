@@ -51,7 +51,7 @@ function isProjectRecord(value: unknown): value is ProjectRecord {
   return (
     typeof project.id === 'string' &&
     typeof project.worldId === 'string' &&
-    project.interactionType === 'text' &&
+    (project.interactionType === 'text' || project.interactionType === 'voice-text') &&
     typeof project.name === 'string' &&
     typeof project.prompt === 'string' &&
     typeof project.generation === 'object' &&

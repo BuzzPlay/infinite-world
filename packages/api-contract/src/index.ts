@@ -4,7 +4,7 @@ export type GenerationMode = 'regular' | 'nightmare' | 'cohesive' | 'visual' | '
 
 export type StylePreset = 'cohesive' | 'chaotic' | 'nightmare' | 'custom';
 
-export type InteractionType = 'text';
+export type InteractionType = 'text' | 'voice-text';
 
 export interface CharacterReference {
   image: string;
@@ -301,6 +301,11 @@ export interface UpdateRunConfigRequest {
 export interface ChooseSceneOptionRequest {
   sceneId?: string;
   optionId: string;
+}
+
+export interface SubmitInteractionRequest {
+  sceneId?: string;
+  input: string;
 }
 
 export interface RunResponse {

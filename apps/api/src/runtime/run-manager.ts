@@ -90,6 +90,17 @@ export class RunManager {
     return run;
   }
 
+  chooseInput(worldId: string, input: string, sceneId?: string) {
+    const run = this.runs.chooseInput(worldId, input, sceneId);
+    if (run.state === 'preparing') {
+      this.launch(worldId, run);
+      return run;
+    }
+    this.wakeups.get(worldId)?.();
+    this.events.publish({ type: 'run.status', run });
+    return run;
+  }
+
   activateScene(worldId: string, sceneId: string) {
     const run = this.runs.activateScene(worldId, sceneId);
     this.release(worldId);

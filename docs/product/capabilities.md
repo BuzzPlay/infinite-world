@@ -4,7 +4,7 @@ This document defines the capability baseline currently supported by the local w
 
 ## World Setup
 
-- Create a world with an interaction type, name, initial prompt, initial image, and optional character references.
+- Create a world with a text or voice-and-text interaction type, name, initial prompt, initial image, and optional character references.
 - Select a generation backend and configure output when starting a run.
 - Configure dimensions, model-supported duration, guidance, seed, and generation mode when supported by the backend. Frame rate follows the selected model's default.
 - Save the configuration used by each run.
@@ -14,6 +14,7 @@ This document defines the capability baseline currently supported by the local w
 - Generate the first scene from the world configuration.
 - Generate consecutive scenes from the latest scene, current world state, and recent generation context.
 - Create prompts from the world state, selected directions, and recent scene context.
+- Voice-and-text worlds accept either editable text input or browser speech input. Speech is transcribed into the same editable input before submission.
 - Support hosted generation through provider adapters.
 - Support image-to-video input and character references when the selected backend provides them.
 - Track the run state, scene count, prompt history, timing, and errors.

@@ -25,7 +25,7 @@ export const visionModels = new Set<string>(MODEL_CATALOG.vision.map((model) => 
 
 export const generationModes = new Set(['regular', 'nightmare', 'cohesive', 'visual', 'chaotic']);
 export const stylePresets = new Set(['cohesive', 'chaotic', 'nightmare', 'custom']);
-export const interactionTypes = new Set<InteractionType>(['text']);
+export const interactionTypes = new Set<InteractionType>(['text', 'voice-text']);
 
 export function makeWorld(
   input: WorldConfig | null | undefined,
