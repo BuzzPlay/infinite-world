@@ -1,0 +1,1 @@
+import './emojibase-data.mjs';

@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "test": "tsc --noEmit -p tsconfig.test.json && tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "@fastify/websocket": "^11.2.0",
     "@infinite-world/api-contract": "workspace:*",
     "ai": "7.0.91",
+    "dotenv": "^17.4.2",
     "fastify": "^5.4.0",
     "tmi.js": "^1.8.5",
     "zod": "^4.5.4"
