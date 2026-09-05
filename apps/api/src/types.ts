@@ -4,6 +4,7 @@ import type {
   LiveOutputSettings,
   ProviderSettings,
   RunSnapshot,
+  SceneOptionSnapshot,
   SceneSnapshot,
   WorldSnapshot,
 } from '@infinite-world/api-contract';
@@ -112,6 +113,7 @@ export interface GeneratedScene {
   contextSummary: string;
   previewUrl: string;
   mediaType: SceneSnapshot['mediaType'];
+  options?: SceneOptionSnapshot[];
   continuityImageUrl?: string | null;
   sourceContinuityImageUrl?: string | null;
   generationLatencyMs: number;

@@ -363,6 +363,16 @@ function generatedScene(prompt: string): GeneratedScene {
     contextSummary: prompt,
     previewUrl: `https://example.com/${encodeURIComponent(prompt)}.mp4`,
     mediaType: 'video',
+    options: testOptions(),
     generationLatencyMs: 100,
   };
+}
+
+function testOptions() {
+  return ['A', 'B', 'C', 'D'].map((label) => ({
+    id: `test-option-${label}`,
+    label,
+    title: `Option ${label}`,
+    votes: 0,
+  }));
 }

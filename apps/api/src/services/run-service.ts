@@ -187,20 +187,48 @@ export class RunService {
   }
 
   choose(worldId: string, optionId: string, sceneId?: string) {
-    this.requireActiveWorld(worldId);
     const previous = this.requireRun(worldId);
     const selection = selectedBranch(previous, optionId, sceneId);
+    return this.chooseDirection(
+      worldId,
+      selection.scene,
+      selection.option.id,
+      selection.option.title,
+      selection.option,
+    );
+  }
+
+  chooseInput(worldId: string, input: string, sceneId?: string) {
+    const previous = this.requireRun(worldId);
+    const scene = sceneId
+      ? previous.scenes.find((candidate) => candidate.id === sceneId)
+      : previous.currentScene;
+    if (!scene) throw new ApiError(404, 'not_found', 'source scene does not exist');
+    const direction = input.trim();
+    if (!direction) throw new ApiError(400, 'invalid_input', 'input is required');
+    return this.chooseDirection(worldId, scene, null, direction);
+  }
+
+  private chooseDirection(
+    worldId: string,
+    scene: StoredRun['scenes'][number],
+    optionId: string | null,
+    direction: string,
+    option?: StoredRun['scenes'][number]['options'][number],
+  ) {
+    this.requireActiveWorld(worldId);
+    const previous = this.requireRun(worldId);
     const world = this.state.getWorld(worldId);
     if (!world) throw new ApiError(404, 'not_found', 'world does not exist');
     const generation = applyGenerationInput(
-      generationForRunVersion(previous, selection.scene.versionId, world.generation),
+      generationForRunVersion(previous, scene.versionId, world.generation),
       {},
     );
     if (previous.state === 'running') {
       if (previous.generationTask || previous.pendingBranch) {
         throw new ApiError(409, 'invalid_state', 'a scene is already being generated');
       }
-      if (selection.scene.versionId !== previous.id) {
+      if (scene.versionId !== previous.id) {
         throw new ApiError(
           409,
           'invalid_state',
@@ -208,11 +236,11 @@ export class RunService {
         );
       }
       this.requireRunnableGeneration(generation);
-      selection.option.votes += 1;
-      previous.pendingBranch = selection.branch;
+      if (option) option.votes += 1;
+      previous.pendingBranch = { sceneId: scene.id, optionId, direction };
       previous.generationTask = {
-        sourceSceneId: selection.scene.id,
-        optionId: selection.option.id,
+        sourceSceneId: scene.id,
+        optionId,
         startedAt: nowIso(),
       };
       previous.revision += 1;
@@ -223,15 +251,15 @@ export class RunService {
       throw new ApiError(409, 'invalid_state', 'wait for the current run state to finish');
 
     this.requireRunnableGeneration(generation);
+    if (option) option.votes += 1;
     const nextWorld = { ...world, generation };
-    selection.option.votes += 1;
-    const nextRun = runForSceneBranch(previous, selection.scene, generation);
-    nextRun.pendingBranch = selection.branch;
+    const nextRun = runForSceneBranch(previous, scene, generation);
+    nextRun.pendingBranch = { sceneId: scene.id, optionId, direction };
     nextRun.state = 'preparing';
     nextRun.startedAt = nowIso();
     nextRun.generationTask = {
-      sourceSceneId: selection.scene.id,
-      optionId: selection.option.id,
+      sourceSceneId: scene.id,
+      optionId,
       startedAt: nextRun.startedAt,
     };
     nextRun.revision = 1;

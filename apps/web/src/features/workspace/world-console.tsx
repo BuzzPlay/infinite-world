@@ -50,6 +50,7 @@ import {
   selectWorld,
   startRun,
   stopRun,
+  submitInteraction,
   subscribeToEvents,
   updateProviderSettings,
   updateRunConfig,
@@ -532,6 +533,22 @@ function WorldConsole() {
     }
   };
 
+  const submitUserInteraction = async (sceneId: string, input: string) => {
+    if (!world || busy !== null || choiceInFlightRef.current) return;
+    choiceInFlightRef.current = true;
+    setBusy('choice');
+    setNotice(null);
+    try {
+      applyRunResponse(world, (await submitInteraction(world.id, input, sceneId)).run);
+    } catch (error) {
+      setNoticeTone('error');
+      setNotice(error instanceof Error ? error.message : t('dashboard.directionFailed'));
+    } finally {
+      choiceInFlightRef.current = false;
+      setBusy(null);
+    }
+  };
+
   const activateSceneForView = async (sceneId: string) => {
     if (!world || busy !== null) return;
     setBusy('activate-scene');
@@ -719,6 +736,7 @@ function WorldConsole() {
               onAction={(action) => void perform(action)}
               onActivateScene={(sceneId) => void activateSceneForView(sceneId)}
               onOptionSelect={(sceneId, optionId) => void chooseOption(sceneId, optionId)}
+              onInputSubmit={(sceneId, input) => void submitUserInteraction(sceneId, input)}
               onRegenerateOptions={(sceneId) => void regenerateOptions(sceneId)}
               onDeleteSceneBranch={deleteBranch}
               onDeleteVersion={deleteVersion}

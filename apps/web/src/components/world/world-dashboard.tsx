@@ -35,6 +35,7 @@ interface WorldDashboardProps {
   onAction: (action: RunAction) => void;
   onActivateScene: (sceneId: string) => void;
   onOptionSelect: (sceneId: string, optionId: string) => void;
+  onInputSubmit: (sceneId: string, input: string) => void;
   onRegenerateOptions: (sceneId: string) => void;
   onDeleteSceneBranch: (sceneId: string) => Promise<RunSnapshot | null>;
   onDeleteVersion: (versionId: string) => Promise<boolean>;
@@ -59,6 +60,7 @@ export function WorldDashboard({
   onAction,
   onActivateScene,
   onOptionSelect,
+  onInputSubmit,
   onRegenerateOptions,
   onDeleteSceneBranch,
   onDeleteVersion,
@@ -158,6 +160,8 @@ export function WorldDashboard({
             setSelection({ sceneId, optionId, runId: run?.id ?? null });
             onOptionSelect(sceneId, optionId);
           }}
+          interactionType={draft.interactionType}
+          onInputSubmit={onInputSubmit}
           onRegenerateOptions={(sceneId) => {
             setSelection(null);
             onRegenerateOptions(sceneId);

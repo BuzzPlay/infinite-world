@@ -3,12 +3,11 @@ import type {
   InteractionType,
   WorldConfig,
 } from '@infinite-world/api-contract';
-
+import { useTranslation } from '../../i18n/use-translation';
 import { Field, FieldGroup, FieldLabel } from '../ui/field';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
-import { useTranslation } from '../../i18n/use-translation';
 import { InitialImageField } from './initial-image-field';
 
 interface WorldSetupFormProps {
@@ -44,6 +43,7 @@ export function WorldSetupForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="text">{t('project.interaction.text')}</SelectItem>
+              <SelectItem value="voice-text">{t('project.interaction.voice-text')}</SelectItem>
             </SelectContent>
           </Select>
         </Field>

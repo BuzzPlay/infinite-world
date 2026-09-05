@@ -6,6 +6,7 @@ import type {
   RealtimeEvent,
   RunResponse,
   StartRunRequest,
+  SubmitInteractionRequest,
   UpdateProviderSettingsRequest,
   UpdateRunConfigRequest,
   WorldConfig,
@@ -103,6 +104,15 @@ export function updateRunConfig(worldId: string, settings: UpdateRunConfigReques
 export function chooseSceneOption(worldId: string, optionId: string, sceneId?: string) {
   const payload: ChooseSceneOptionRequest = { optionId, sceneId };
   return request<RunResponse>(`/api/worlds/${worldId}/run/choice`, {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function submitInteraction(worldId: string, input: string, sceneId?: string) {
+  const payload: SubmitInteractionRequest = { input, sceneId };
+  return request<RunResponse>(`/api/worlds/${worldId}/run/input`, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify(payload),

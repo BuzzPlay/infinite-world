@@ -1,4 +1,7 @@
-import type { ChooseSceneOptionRequest } from '@infinite-world/api-contract';
+import type {
+  ChooseSceneOptionRequest,
+  SubmitInteractionRequest,
+} from '@infinite-world/api-contract';
 import type { FastifyInstance } from 'fastify';
 import { publicRun } from '../domain/run.js';
 import type { RunManager } from '../runtime/run-manager.js';
@@ -38,6 +41,18 @@ export function registerRunRoutes(app: FastifyInstance, runs: RunService, manage
     async (request) => ({
       run: publicRun(
         manager.choose(request.params.worldId, request.body?.optionId, request.body?.sceneId),
+      ),
+    }),
+  );
+  app.post<{ Params: RunParams; Body: SubmitInteractionRequest }>(
+    '/api/worlds/:worldId/run/input',
+    async (request) => ({
+      run: publicRun(
+        manager.chooseInput(
+          request.params.worldId,
+          request.body?.input ?? '',
+          request.body?.sceneId,
+        ),
       ),
     }),
   );

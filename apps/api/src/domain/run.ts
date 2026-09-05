@@ -160,7 +160,7 @@ export function appendScene(
     continuityImageUrl: scene.continuityImageUrl ?? null,
     mediaType: scene.mediaType,
     contextSummary: scene.contextSummary,
-    options: sceneOptions(sequence),
+    options: scene.options?.map(clone) ?? [],
     generatedAt: nowIso(),
     generationLatencyMs: scene.generationLatencyMs,
   };
@@ -588,13 +588,4 @@ export function sceneLineage(scenes: SceneSnapshot[], sceneId: string | null) {
     current = current.parentSceneId ? (byId.get(current.parentSceneId) ?? null) : null;
   }
   return lineage.reverse();
-}
-
-function sceneOptions(sequence: number) {
-  return [
-    ['A', 'Follow the light beyond the ridge'],
-    ['B', 'Stay with the river as night falls'],
-    ['C', 'Turn toward the distant signal'],
-    ['D', 'Wait and see what changes'],
-  ].map(([label, title]) => ({ id: `scene-${sequence}-${label}`, label, title, votes: 0 }));
 }

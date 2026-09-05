@@ -28,6 +28,7 @@ Fastify API ---- runtime state and persistence
 - `generationTask` identifies the source scene and selected option while the next scene is being generated. The source remains the current scene until the generated scene is recorded.
 - Activating a saved scene makes it the current scene and enters `Running` without generating new media or requiring provider credentials. The run waits for the user to choose a direction; choosing one validates the saved version's provider configuration before generation starts.
 - `apps/api/src/providers/ai/` owns hosted AI and prompt adapters.
+- `text` projects use the existing choice interaction. `voice-text` projects add a free-form input path; text and browser speech are normalized to the same story direction before generation.
 - `apps/api/src/live/` owns chat integrations and live output processes.
 - `apps/api/src/storage/` owns local persistence.
 - `packages/api-contract/` owns request, response, and real-time event shapes.
