@@ -1,18 +1,15 @@
-import { createGoogle } from '@ai-sdk/google';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateObject, type LanguageModel, type ModelMessage } from 'ai';
+import { generateObject, type ModelMessage } from 'ai';
 import { z } from 'zod';
 
-import { findModel } from '@infinite-world/api-contract/model-catalog';
 import type { GenerationInput, ProviderState } from '../../types.js';
-import { initialImageForScene } from './scene-input.js';
+import { downloadModelImage, type ModelImage } from './model-image.js';
+import { imageForScene } from './scene-input.js';
+import { resolveVisionModel } from './vision-model.js';
 
 const sceneSchema = z.object({
   prompt: z.string().min(1),
   context_summary: z.string().optional(),
 });
-
-const FAL_OPENROUTER_BASE_URL = 'https://fal.run/openrouter/router/openai/v1';
 
 export interface PromptResult {
   prompt: string;
@@ -21,63 +18,46 @@ export interface PromptResult {
 }
 
 export class PromptProvider {
-  async generate(input: GenerationInput, settings: ProviderState): Promise<PromptResult> {
-    const fallback = fallbackPrompt(input);
-    const model = resolveModel(input, settings);
-    if (!model) return fallback;
-    const initialImage = initialImageForScene(input);
+  async generate(
+    input: GenerationInput,
+    settings: ProviderState,
+    signal?: AbortSignal,
+  ): Promise<PromptResult> {
+    const model = resolveVisionModel(input.generation.visionModel, settings);
+    if (!model) throw new Error('the selected vision model is not configured');
+    const sceneImageUrl = imageForScene(input);
+    const sceneImage = sceneImageUrl
+      ? await downloadModelImage(new URL(sceneImageUrl), { signal })
+      : null;
 
-    try {
-      const result = await generateObject({
-        model,
-        schema: sceneSchema,
-        schemaName: 'scene_progression',
-        system: systemPrompt(input.generation.mode, input.generation.stylePreset),
-        ...(initialImage
-          ? { messages: imageMessages(requestText(input), initialImage) }
-          : { prompt: requestText(input) }),
-        maxOutputTokens: 400,
-        maxRetries: 1,
-      });
-      const value = result.object;
-      return {
-        prompt: value.prompt.trim(),
-        contextSummary: value.context_summary?.trim() || 'The story advances into a new scene.',
-        selectedComment: null,
-      };
-    } catch {
-      return fallback;
-    }
+    const result = await generateObject({
+      model,
+      schema: sceneSchema,
+      schemaName: 'scene_progression',
+      system: systemPrompt(input.generation.mode, input.generation.stylePreset),
+      ...(sceneImage
+        ? { messages: imageMessages(requestText(input), sceneImage) }
+        : { prompt: requestText(input) }),
+      maxOutputTokens: 400,
+      maxRetries: 1,
+      abortSignal: signal,
+    });
+    const value = result.object;
+    return {
+      prompt: value.prompt.trim(),
+      contextSummary: value.context_summary?.trim() || 'The story advances into a new scene.',
+      selectedComment: null,
+    };
   }
 }
 
-function resolveModel(input: GenerationInput, settings: ProviderState): LanguageModel | null {
-  const definition = findModel('vision', input.generation.visionModel);
-  if (!definition?.modelId) return null;
-
-  if (definition.provider === 'google' && settings.googleApiKey) {
-    return createGoogle({ apiKey: settings.googleApiKey })(definition.modelId);
-  }
-
-  if (definition.provider === 'fal' && settings.falApiKey) {
-    return createOpenAICompatible({
-      baseURL: FAL_OPENROUTER_BASE_URL,
-      headers: { Authorization: `Key ${settings.falApiKey}` },
-      name: 'fal',
-      supportsStructuredOutputs: true,
-    })(definition.modelId);
-  }
-
-  return null;
-}
-
-function imageMessages(text: string, imageUrl: string): ModelMessage[] {
+function imageMessages(text: string, image: ModelImage): ModelMessage[] {
   return [
     {
       role: 'user',
       content: [
         { type: 'text', text },
-        { type: 'image', image: new URL(imageUrl) },
+        { type: 'image', image: image.data, mediaType: image.mediaType },
       ],
     },
   ];
@@ -98,15 +78,4 @@ function requestText(input: GenerationInput) {
       .map((scene) => scene.prompt)
       .join('\n') || 'none';
   return `World: ${input.world.name}\nBase premise: ${input.world.prompt}\nScene: ${input.run.scenes.length + 1}\nPrevious context: ${input.run.currentScene?.contextSummary ?? 'none'}\nPrevious prompts:\n${previous}\nSelected direction: ${input.branchDirection ?? 'none'}`;
-}
-
-function fallbackPrompt(input: GenerationInput): PromptResult {
-  const direction = input.branchDirection
-    ? ` Respond to the direction: ${input.branchDirection}.`
-    : '';
-  return {
-    prompt: `Continue ${input.world.prompt}.${direction}`,
-    contextSummary: `Scene ${input.run.scenes.length + 1} continues the world narrative.`,
-    selectedComment: null,
-  };
 }

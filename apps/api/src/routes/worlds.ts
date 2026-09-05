@@ -1,7 +1,8 @@
-import type { FastifyInstance } from 'fastify';
 import type { WorldConfig } from '@infinite-world/api-contract';
+import type { FastifyInstance } from 'fastify';
 
 import type { EventHub } from '../events.js';
+import type { RunManager } from '../runtime/run-manager.js';
 import type { RuntimeState } from '../runtime/state.js';
 import type { WorldService } from '../services/world-service.js';
 import { ApiError } from '../shared/errors.js';
@@ -11,6 +12,7 @@ type WorldParams = { worldId: string };
 export function registerWorldRoutes(
   app: FastifyInstance,
   worlds: WorldService,
+  runs: RunManager,
   state: RuntimeState,
   events: EventHub,
 ) {
@@ -23,6 +25,7 @@ export function registerWorldRoutes(
   app.get('/api/worlds/list', async () => worlds.list());
 
   app.post<{ Body: { world: WorldConfig } }>('/api/worlds', async (request, reply) => {
+    runs.stopActive();
     const response = worlds.create(request.body?.world);
     events.publish(events.snapshot(state));
     return reply.send(response);
@@ -38,7 +41,14 @@ export function registerWorldRoutes(
   );
 
   app.post<{ Params: WorldParams }>('/api/worlds/:worldId/select', async (request) => {
+    if (state.activeWorldId !== request.params.worldId) runs.stopActive();
     const response = worlds.select(request.params.worldId);
+    events.publish(events.snapshot(state));
+    return response;
+  });
+
+  app.delete<{ Params: WorldParams }>('/api/worlds/:worldId', async (request) => {
+    const response = worlds.remove(request.params.worldId);
     events.publish(events.snapshot(state));
     return response;
   });

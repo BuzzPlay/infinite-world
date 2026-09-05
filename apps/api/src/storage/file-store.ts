@@ -1,57 +1,75 @@
-import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { mkdirSync } from 'node:fs';
 
 import { config } from '../config.js';
-import type { PersistedState, ProviderState, StoredRun } from '../types.js';
+import type { PersistedRootState, ProviderState, RuntimeSnapshot } from '../types.js';
+import { readJson, writeJson } from './json-file.js';
+import { rootStatePath } from './paths.js';
+import { deleteProject, loadProject, saveProject } from './project-store.js';
 
-const EMPTY_STATE: PersistedState = { worlds: [], activeWorldId: null, runs: [], provider: {} };
+const EMPTY_STATE: RuntimeSnapshot = {
+  worlds: [],
+  activeWorldId: null,
+  runs: [],
+  provider: {},
+};
 
-export function loadState(): PersistedState {
-  try {
-    const parsed = JSON.parse(readFileSync(config.dataFile, 'utf8')) as Partial<PersistedState>;
-    return {
-      worlds: Array.isArray(parsed.worlds) ? parsed.worlds : [],
-      activeWorldId: typeof parsed.activeWorldId === 'string' ? parsed.activeWorldId : null,
-      runs: Array.isArray(parsed.runs) ? (parsed.runs as StoredRun[]) : [],
-      provider: parsed.provider && typeof parsed.provider === 'object' ? parsed.provider : {},
-    };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.warn(`Could not read ${config.dataFile}; starting with empty state.`, error);
-    }
-    return { ...EMPTY_STATE, provider: {} };
-  }
+export function loadState(dataDir = config.dataDir): RuntimeSnapshot {
+  const root = readJson<PersistedRootState>(rootStatePath(dataDir));
+  if (root?.schemaVersion !== 1) return structuredClone(EMPTY_STATE);
+
+  const projects = root.projects.flatMap((project) => {
+    const loaded = loadProject(dataDir, project.id);
+    return loaded ? [loaded] : [];
+  });
+  const activeWorldId = projects.some((project) => project.world.id === root.activeProjectId)
+    ? root.activeProjectId
+    : (projects[0]?.world.id ?? null);
+  return {
+    worlds: projects.map((project) => project.world),
+    runs: projects.map((project) => project.run),
+    activeWorldId,
+    provider: root.provider ?? {},
+  };
 }
 
-export function saveState(state: PersistedState) {
-  mkdirSync(dirname(config.dataFile), { recursive: true });
-  const temporary = `${config.dataFile}.tmp`;
-  writeFileSync(temporary, JSON.stringify(state, null, 2), { encoding: 'utf8', mode: 0o600 });
-  try {
-    chmodSync(temporary, 0o600);
-  } catch {
-    // File permissions are best effort on platforms without POSIX modes.
+export function saveState(state: RuntimeSnapshot, dataDir = config.dataDir) {
+  mkdirSync(dataDir, { recursive: true });
+  const previous = readJson<PersistedRootState>(rootStatePath(dataDir));
+  const projects = state.worlds.flatMap((world) => {
+    const run = state.runs.find((candidate) => candidate.worldId === world.id);
+    if (!run) return [];
+    saveProject(dataDir, world, run);
+    return [
+      {
+        id: world.id,
+        name: world.name,
+        interactionType: world.interactionType,
+        createdAt: world.createdAt,
+      },
+    ];
+  });
+  const root: PersistedRootState = {
+    schemaVersion: 1,
+    activeProjectId: state.activeWorldId,
+    projects,
+    provider: state.provider,
+  };
+  writeJson(rootStatePath(dataDir), root);
+  const projectIds = new Set(projects.map((project) => project.id));
+  for (const project of previous?.projects ?? []) {
+    if (!projectIds.has(project.id)) deleteProject(dataDir, project.id);
   }
-  renameSync(temporary, config.dataFile);
 }
 
 export function defaultProviderState(): ProviderState {
   return {
-    falApiKey: nonEmpty(process.env.FAL_API_KEY) ?? nonEmpty(process.env.FAL_KEY),
-    googleApiKey:
-      nonEmpty(process.env.GOOGLE_GENERATIVE_AI_API_KEY) ??
-      nonEmpty(process.env.GOOGLE_API_KEY) ??
-      nonEmpty(process.env.GEMINI_API_KEY),
-    twitchStreamKey: nonEmpty(process.env.TWITCH_STREAM_KEY),
-    twitchOauthToken: nonEmpty(process.env.TWITCH_OAUTH_TOKEN),
+    falApiKey: null,
+    googleApiKey: null,
+    twitchStreamKey: null,
+    twitchOauthToken: null,
     defaultStylePreset: 'cohesive',
-    twitchChannel: process.env.TWITCH_CHANNEL?.trim() ?? '',
-    twitchUsername: process.env.TWITCH_USERNAME?.trim() ?? '',
+    twitchChannel: '',
+    twitchUsername: '',
     chatLookback: 5,
   };
-}
-
-function nonEmpty(value: string | undefined | null) {
-  const normalized = value?.trim();
-  return normalized ? normalized : null;
 }

@@ -1,16 +1,21 @@
+import type {
+  GenerationSettings,
+  InteractionType,
+  WorldConfig,
+  WorldSnapshot,
+} from '@infinite-world/api-contract';
 import { DEFAULT_GENERATION } from '@infinite-world/api-contract';
 import {
-  DEFAULT_VISION_MODEL,
   DEFAULT_VIDEO_MODEL,
+  DEFAULT_VISION_MODEL,
   FAL_GEMINI_MODEL,
   findModel,
   isFalVideoModel,
-  normalizeVideoModelId,
   MODEL_CATALOG,
+  normalizeVideoModelId,
   videoEndpointFor,
   videoProfileFor,
 } from '@infinite-world/api-contract/model-catalog';
-import type { GenerationSettings, WorldConfig, WorldSnapshot } from '@infinite-world/api-contract';
 
 import { ApiError } from '../shared/errors.js';
 import type { ProviderState, RunConfigInput, RunStartInput } from '../types.js';
@@ -20,6 +25,7 @@ export const visionModels = new Set<string>(MODEL_CATALOG.vision.map((model) => 
 
 export const generationModes = new Set(['regular', 'nightmare', 'cohesive', 'visual', 'chaotic']);
 export const stylePresets = new Set(['cohesive', 'chaotic', 'nightmare', 'custom']);
+export const interactionTypes = new Set<InteractionType>(['text']);
 
 export function makeWorld(
   input: WorldConfig | null | undefined,
@@ -31,6 +37,13 @@ export function makeWorld(
     throw new ApiError(400, 'invalid_world', 'world is required');
   const name = input.name?.trim();
   const prompt = input.prompt?.trim();
+  if (!interactionTypes.has(input.interactionType)) {
+    throw new ApiError(
+      400,
+      'invalid_interaction_type',
+      `unsupported interaction type: ${String(input.interactionType)}`,
+    );
+  }
   if (!name) throw new ApiError(400, 'invalid_world', 'name is required');
   if (!prompt) throw new ApiError(400, 'invalid_world', 'prompt is required');
   const generationInput = input.generation ?? {};
@@ -61,7 +74,7 @@ export function makeWorld(
       'configure a provider key before selecting hosted generation',
     );
   }
-  return { id, name, prompt, generation, createdAt };
+  return { id, interactionType: input.interactionType, name, prompt, generation, createdAt };
 }
 
 export function normalizeGeneration(
@@ -204,6 +217,9 @@ export function isVisionModelConfigured(model: string, provider: ProviderState) 
 }
 
 export function normalizeStoredWorld(world: WorldSnapshot): WorldSnapshot {
+  if (!interactionTypes.has(world.interactionType)) {
+    throw new Error(`Unsupported stored interaction type: ${String(world.interactionType)}`);
+  }
   return { ...world, generation: normalizeGeneration(world.generation) };
 }
 
@@ -218,9 +234,7 @@ function normalizeVideoSettings(generation: GenerationSettings): GenerationSetti
     profile.longDuration && durationSeconds > profile.longDuration.aboveSeconds
       ? profile.longDuration
       : null;
-  const frameRate = profile.frameRates.includes(generation.frameRate)
-    ? generation.frameRate
-    : profile.defaults.frameRate;
+  const frameRate = profile.defaults.frameRate;
   const resolution =
     generation.resolution && profile.resolutions.includes(generation.resolution)
       ? generation.resolution

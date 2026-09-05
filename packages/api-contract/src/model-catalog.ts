@@ -8,21 +8,26 @@ export const FAL_GEMINI_FLASH_LITE_MODEL = 'fal/google/gemini-2.5-flash-lite';
 export const LTX_23_FAST_VIDEO_MODEL = 'fal/ltx-2.3-fast';
 export const LTX_23_FAST_TEXT_ENDPOINT = 'fal-ai/ltx-2.3/text-to-video/fast';
 export const LTX_23_FAST_IMAGE_ENDPOINT = 'fal-ai/ltx-2.3/image-to-video/fast';
+export const MINIMAX_H3_VIDEO_MODEL = 'fal/minimax-h3';
+export const MINIMAX_H3_TEXT_ENDPOINT = 'minimax/h3/text-to-video';
+export const MINIMAX_H3_IMAGE_ENDPOINT = 'minimax/h3/image-to-video';
 export const DEFAULT_VISION_MODEL = GOOGLE_MODEL;
 export const DEFAULT_VIDEO_MODEL = LTX_23_FAST_VIDEO_MODEL;
 
 export type ModelProvider = 'none' | 'google' | 'fal';
 export type ModelApiKey = null | 'googleApiKey' | 'falApiKey';
 export type VideoInputMode = 'text-to-video' | 'image-to-video';
-export type VideoResolution = '1080p' | '1440p' | '2160p';
-export type VideoAspectRatio = 'auto' | '16:9' | '9:16';
+export type VideoResolution = '480P' | '768P' | '2K' | '4K' | '1080p' | '1440p' | '2160p';
+export type VideoAspectRatio = 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16';
 
 export interface VideoModelProfile {
-  endpoints: Partial<Record<VideoInputMode, string>>;
+  /** Every selectable video model must support both a fresh scene and continuation input. */
+  endpoints: Record<VideoInputMode, string>;
   durations: readonly number[];
   frameRates: readonly number[];
   resolutions: readonly VideoResolution[];
   aspectRatios: readonly VideoAspectRatio[];
+  supportsFrameRateControl: boolean;
   supportsAudio: boolean;
   defaults: {
     durationSeconds: number;
@@ -101,6 +106,7 @@ export const MODEL_CATALOG = {
         frameRates: [24, 25, 48, 50],
         resolutions: ['1080p', '1440p', '2160p'],
         aspectRatios: ['auto', '16:9', '9:16'],
+        supportsFrameRateControl: true,
         supportsAudio: true,
         defaults: {
           durationSeconds: 6,
@@ -116,6 +122,32 @@ export const MODEL_CATALOG = {
         },
       },
     },
+    {
+      id: MINIMAX_H3_VIDEO_MODEL,
+      label: 'MiniMax H3',
+      provider: 'fal',
+      modelId: null,
+      apiKey: 'falApiKey',
+      video: {
+        endpoints: {
+          'text-to-video': MINIMAX_H3_TEXT_ENDPOINT,
+          'image-to-video': MINIMAX_H3_IMAGE_ENDPOINT,
+        },
+        durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        frameRates: [24],
+        resolutions: ['480P', '768P', '2K', '4K'],
+        aspectRatios: ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+        supportsFrameRateControl: false,
+        supportsAudio: false,
+        defaults: {
+          durationSeconds: 5,
+          frameRate: 24,
+          resolution: '480P',
+          aspectRatio: '16:9',
+          enableAudio: false,
+        },
+      },
+    },
   ],
 } as const satisfies Record<ModelCapability, readonly ModelDefinition[]>;
 
@@ -127,7 +159,13 @@ const LEGACY_VIDEO_MODELS = new Set([
 ]);
 
 export function modelsForCapability(capability: ModelCapability): readonly ModelDefinition[] {
-  return MODEL_CATALOG[capability];
+  const models = MODEL_CATALOG[capability];
+  if (capability !== 'video') return models;
+  return models.filter(
+    (model) =>
+      model.provider === 'none' ||
+      ('video' in model && Boolean(model.video.endpoints['image-to-video'])),
+  );
 }
 
 export function findModel(capability: ModelCapability, id: string): ModelDefinition | undefined {

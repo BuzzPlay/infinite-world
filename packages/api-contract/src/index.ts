@@ -4,6 +4,8 @@ export type GenerationMode = 'regular' | 'nightmare' | 'cohesive' | 'visual' | '
 
 export type StylePreset = 'cohesive' | 'chaotic' | 'nightmare' | 'custom';
 
+export type InteractionType = 'text';
+
 export interface CharacterReference {
   image: string;
   strength: number;
@@ -19,8 +21,8 @@ export interface GenerationSettings {
   height: number;
   durationSeconds: number;
   frameRate: number;
-  resolution: '1080p' | '1440p' | '2160p' | null;
-  aspectRatio: 'auto' | '16:9' | '9:16' | null;
+  resolution: '480P' | '768P' | '2K' | '4K' | '1080p' | '1440p' | '2160p' | null;
+  aspectRatio: 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | null;
   guidanceScale: number;
   seed: number | null;
   negativePrompt: string;
@@ -38,6 +40,7 @@ export interface GenerationSettings {
 }
 
 export interface WorldConfig {
+  interactionType: InteractionType;
   name: string;
   prompt: string;
   generation: GenerationSettings;
@@ -50,9 +53,15 @@ export interface WorldSnapshot extends WorldConfig {
 
 export interface SceneSnapshot {
   id: string;
+  versionId: string;
+  version: number;
+  versionSceneSequence: number;
   sequence: number;
+  parentSceneId: string | null;
+  sourceOptionId: string | null;
   prompt: string;
   previewUrl: string;
+  continuityImageUrl: string | null;
   mediaType: 'none' | 'image' | 'video';
   contextSummary: string;
   options: SceneOptionSnapshot[];
@@ -99,12 +108,30 @@ export interface RunMetricsSample {
   chatReconnects: number;
 }
 
+export interface RunVersionSnapshot {
+  id: string;
+  version: number;
+  generation: GenerationSettings;
+  latestSceneId: string | null;
+  lastActivityAt: string | null;
+}
+
+export interface GenerationTaskSnapshot {
+  sourceSceneId: string | null;
+  optionId: string | null;
+  startedAt: string;
+}
+
 export interface RunSnapshot {
   id: string;
   worldId: string;
+  version: number;
+  versions: RunVersionSnapshot[];
+  revision: number;
   state: RunState;
   sceneCount: number;
   currentScene: SceneSnapshot | null;
+  generationTask: GenerationTaskSnapshot | null;
   lastError: string | null;
   metrics: RunMetrics;
   startedAt: string | null;
@@ -132,6 +159,7 @@ export interface GenerationHistorySnapshot {
   numFrames: number;
   strength: number;
   guidanceScale: number;
+  seed: number | null;
   timesteps: number[];
   targetFps: number;
   stgScale: number;
@@ -181,6 +209,11 @@ export interface WorldListResponse {
   worlds: WorldSnapshot[];
   activeWorldId: string | null;
   providerApiKeyConfigured: boolean;
+}
+
+export interface DeleteWorldResponse {
+  deletedWorldId: string;
+  activeWorld: WorldResponse | null;
 }
 
 export type LivePlatform = 'youtube' | 'twitch' | 'custom';
@@ -266,6 +299,7 @@ export interface UpdateRunConfigRequest {
 }
 
 export interface ChooseSceneOptionRequest {
+  sceneId?: string;
   optionId: string;
 }
 
@@ -296,6 +330,8 @@ export type RealtimeEvent =
     }
   | { type: 'run.status'; run: RunSnapshot }
   | { type: 'scene.ready'; run: RunSnapshot; scene: SceneSnapshot }
+  | { type: 'scene.deleted'; run: RunSnapshot; sceneIds: string[] }
+  | { type: 'version.deleted'; run: RunSnapshot; versionId: string; sceneIds: string[] }
   | { type: 'run.error'; run: RunSnapshot; message: string };
 
 export const DEFAULT_GENERATION: GenerationSettings = {

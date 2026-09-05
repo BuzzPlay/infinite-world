@@ -1,5 +1,6 @@
 import type {
   GenerationSettings,
+  InteractionType,
   LiveOutputSettings,
   ProviderSettings,
   RunSnapshot,
@@ -22,16 +23,48 @@ export interface ProviderState extends ProviderSecrets {
 }
 
 export type StoredRun = RunSnapshot & {
-  outputSettings?: LiveOutputSettings | null;
-  pendingDirection?: string | null;
-  continuityImageUrl?: string | null;
+  outputSettings: LiveOutputSettings | null;
+  pendingBranch: PendingBranch | null;
+  continuityImageUrl: string | null;
 };
 
-export interface PersistedState {
+export interface PendingBranch {
+  sceneId: string;
+  optionId: string | null;
+  direction: string;
+}
+
+export interface RuntimeSnapshot {
   worlds: WorldSnapshot[];
   activeWorldId: string | null;
   runs: StoredRun[];
   provider: Partial<ProviderState>;
+}
+
+export interface ProjectIndexEntry {
+  id: string;
+  name: string;
+  interactionType: InteractionType;
+  createdAt: string;
+}
+
+export interface PersistedRootState {
+  schemaVersion: 1;
+  activeProjectId: string | null;
+  projects: ProjectIndexEntry[];
+  provider: Partial<ProviderState>;
+}
+
+export interface VersionIndexEntry {
+  id: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersistedProjectState {
+  activeVersionId: string;
+  versions: VersionIndexEntry[];
 }
 
 export interface RunStartInput {
@@ -69,6 +102,8 @@ export interface GenerationInput {
   world: WorldSnapshot;
   run: StoredRun;
   generation: GenerationSettings;
+  parentSceneId: string | null;
+  sourceOptionId: string | null;
   branchDirection: string | null;
 }
 
@@ -78,6 +113,7 @@ export interface GeneratedScene {
   previewUrl: string;
   mediaType: SceneSnapshot['mediaType'];
   continuityImageUrl?: string | null;
+  sourceContinuityImageUrl?: string | null;
   generationLatencyMs: number;
   selectedComment?: string | null;
 }
@@ -91,4 +127,6 @@ export type RealtimeEvent =
     }
   | { type: 'run.status'; run: RunSnapshot }
   | { type: 'scene.ready'; run: RunSnapshot; scene: SceneSnapshot }
+  | { type: 'scene.deleted'; run: RunSnapshot; sceneIds: string[] }
+  | { type: 'version.deleted'; run: RunSnapshot; versionId: string; sceneIds: string[] }
   | { type: 'run.error'; run: RunSnapshot; message: string };
