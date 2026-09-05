@@ -189,7 +189,18 @@ export class RunManager {
           : null,
       );
       run = appended.run;
-      this.events.publish({ type: 'scene.ready', run, scene: appended.scene });
+      if (world.interactionType === 'text') {
+        const optionContext = this.runs.sceneOptionContext(worldId, appended.scene.id);
+        const titles = await this.optionGenerator.generate(
+          optionContext,
+          this.state.provider,
+          signal,
+        );
+        run = this.runs.replaceSceneOptions(worldId, appended.scene.id, titles);
+      }
+      const readyScene =
+        run.scenes.find((scene) => scene.id === appended.scene.id) ?? appended.scene;
+      this.events.publish({ type: 'scene.ready', run, scene: readyScene });
       this.maybeStartOutput(worldId, run, scene);
       if (this.runs.hasPendingBranch(worldId)) continue;
       await this.waitForNextScene(worldId, signal);

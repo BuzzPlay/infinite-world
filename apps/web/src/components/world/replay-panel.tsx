@@ -1,4 +1,4 @@
-import type { SceneSnapshot } from '@infinite-world/api-contract';
+import type { SceneOptionSnapshot, SceneSnapshot } from '@infinite-world/api-contract';
 import { ChevronLeft, ChevronRight, Folder, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,11 @@ interface ReplayPath {
   scenes: SceneSnapshot[];
 }
 
+interface ReplayChoice {
+  options: SceneOptionSnapshot[];
+  optionId: string | null;
+}
+
 export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
   const { t } = useTranslation();
   const paths = useMemo(() => buildReplayPaths(scenes), [scenes]);
@@ -26,6 +31,16 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [pathsOpen, setPathsOpen] = useState(false);
   const [showSelectedOption, setShowSelectedOption] = useState(false);
+  const [loopPlayback, setLoopPlayback] = useState(false);
+  const [transitionChoice, setTransitionChoice] = useState<ReplayChoice | null>(null);
+  const transitionChoiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (transitionChoiceTimer.current) clearTimeout(transitionChoiceTimer.current);
+    },
+    [],
+  );
 
   const selectedPath = paths.find((path) => path.id === selectedPathId) ?? paths[0] ?? null;
   const selectedScene = selectedPath?.scenes[sceneIndex] ?? null;
@@ -57,6 +72,8 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
   const isLastScene = sceneIndex === selectedPath.scenes.length - 1;
 
   const choosePath = (path: ReplayPath) => {
+    if (transitionChoiceTimer.current) clearTimeout(transitionChoiceTimer.current);
+    setTransitionChoice(null);
     setSelectedPathId(path.id);
     setSceneIndex(0);
     setShowSelectedOption(false);
@@ -71,11 +88,24 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
           nextScene={nextScene}
           onAdvance={() => {
             if (!isLastScene) {
+              setTransitionChoice({
+                options: selectedScene.options,
+                optionId: selectedOptionId,
+              });
               setShowSelectedOption(false);
               setSceneIndex((current) => current + 1);
+              transitionChoiceTimer.current = setTimeout(() => {
+                setTransitionChoice(null);
+                transitionChoiceTimer.current = null;
+              }, 700);
             }
           }}
           onNearEnd={() => setShowSelectedOption(true)}
+          loop={loopPlayback}
+          onLoop={() => {
+            setShowSelectedOption(false);
+            setSceneIndex(0);
+          }}
           sceneLabel={t('dashboard.scene', { sequence: selectedScene.sequence })}
         />
       ) : selectedScene.previewUrl ? (
@@ -126,22 +156,28 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
         </Button>
       </div>
 
-      <Button
-        type="button"
-        size="icon-md"
-        variant="outline"
-        className="absolute right-4 top-3 z-20 border-border/80 bg-background/90 shadow-sm backdrop-blur-md sm:right-6"
-        title={pathsOpen ? t('dashboard.closeReplayPaths') : t('dashboard.openReplayPaths')}
-        aria-label={pathsOpen ? t('dashboard.closeReplayPaths') : t('dashboard.openReplayPaths')}
-        onClick={() => setPathsOpen((open) => !open)}
-      >
-        {pathsOpen ? <X size={17} aria-hidden="true" /> : <Folder size={17} aria-hidden="true" />}
-      </Button>
+      <div className="absolute right-4 top-3 z-20 flex items-center gap-1 sm:right-6">
+        <Button
+          type="button"
+          size="icon-md"
+          variant="outline"
+          className="border-border/80 bg-background/90 shadow-sm backdrop-blur-md"
+          title={pathsOpen ? t('dashboard.closeReplayPaths') : t('dashboard.openReplayPaths')}
+          aria-label={pathsOpen ? t('dashboard.closeReplayPaths') : t('dashboard.openReplayPaths')}
+          onClick={() => setPathsOpen((open) => !open)}
+        >
+          {pathsOpen ? <X size={17} aria-hidden="true" /> : <Folder size={17} aria-hidden="true" />}
+        </Button>
+      </div>
 
       <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
         <BranchChoicePanel
-          options={selectedScene.options}
-          selectedOptionId={showSelectedOption ? selectedOptionId : null}
+          options={transitionChoice?.options ?? selectedScene.options}
+          selectedOptionId={
+            transitionChoice?.optionId ?? (showSelectedOption ? selectedOptionId : null)
+          }
+          loopEnabled={loopPlayback}
+          onLoopToggle={() => setLoopPlayback((enabled) => !enabled)}
         />
       </div>
 
@@ -199,10 +235,20 @@ interface ReplayVideoProps {
   nextScene: SceneSnapshot | null;
   onAdvance: () => void;
   onNearEnd: () => void;
+  loop: boolean;
+  onLoop: () => void;
   sceneLabel: string;
 }
 
-function ReplayVideo({ scene, nextScene, onAdvance, onNearEnd, sceneLabel }: ReplayVideoProps) {
+function ReplayVideo({
+  scene,
+  nextScene,
+  onAdvance,
+  onNearEnd,
+  loop,
+  onLoop,
+  sceneLabel,
+}: ReplayVideoProps) {
   const nextVideoRef = useRef<HTMLVideoElement>(null);
   const crossfadeStartedRef = useRef(false);
   const [activeScene, setActiveScene] = useState(scene);
@@ -246,7 +292,10 @@ function ReplayVideo({ scene, nextScene, onAdvance, onNearEnd, sceneLabel }: Rep
   };
 
   const advance = () => {
-    if (!queuedScene) return;
+    if (!queuedScene) {
+      if (loop) onLoop();
+      return;
+    }
     if (crossfadeStartedRef.current) return;
     if (queuedScene.mediaType === 'video' && !nextReady) {
       setAdvancePending(true);

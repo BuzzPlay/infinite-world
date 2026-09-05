@@ -31,15 +31,19 @@ export class SceneOptionGenerator {
     const request = requestText(context);
     const imageUrl = sceneImageUrl(context.scene);
     const image = imageUrl ? await downloadModelImage(imageUrl, { signal }) : null;
+    if (context.scene.mediaType === 'video' && !image) {
+      throw new Error('the generated video does not have an available final frame');
+    }
     const result = await generateObject({
       model,
       schema: optionsSchema,
       schemaName: 'scene_options',
       system:
-        'Create exactly four short, clearly different actions a person can choose to shape the next scene of an interactive world. Each option must describe a concrete visible action, preserve continuity, and avoid labels or explanations.',
+        'Create exactly four short, clearly different actions a person can choose to shape the next scene of an interactive world. Use the supplied final frame as the visual truth. Preserve the characters, setting, time, and visible cause-and-effect, while advancing the story with interesting playable choices. Cover meaningfully different directions such as exploration, interaction, risk, and observation when they fit the scene. Do not repeat or lightly rephrase any existing option. Each option must describe one concrete visible action and contain no labels or explanations.',
       ...(image ? { messages: imageMessages(request, image) } : { prompt: request }),
       maxOutputTokens: 300,
-      maxRetries: 1,
+      maxRetries: 3,
+      temperature: 0.85,
       abortSignal: signal,
     });
 
@@ -61,7 +65,9 @@ Current scene summary: ${scene.contextSummary || 'none'}
 Recent scenes:
 ${recentScenes || 'none'}
 Options to replace:
-${previousOptions || 'none'}`;
+${previousOptions || 'none'}
+
+Generate a genuinely new set of choices. The final frame is the state immediately before the next choice.`;
 }
 
 function sceneImageUrl(scene: SceneSnapshot) {

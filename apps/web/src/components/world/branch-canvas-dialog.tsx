@@ -2,12 +2,14 @@
 
 import type { SceneSnapshot } from '@infinite-world/api-contract';
 import {
+  applyNodeChanges,
   Background,
   BackgroundVariant,
   Controls,
   type Edge,
   MiniMap,
   type Node,
+  type NodeChange,
   ReactFlow,
 } from '@xyflow/react';
 import { Film, Trash2 } from 'lucide-react';
@@ -49,6 +51,7 @@ interface BranchCanvasDialogProps {
 
 type SceneNode = Node<{ label: ReactNode }>;
 type SceneVersion = { id: string; number: number };
+const CANVAS_LAYOUT_STORAGE_PREFIX = 'infinite-world:branch-canvas-layout:';
 
 export function BranchCanvasDialog({
   open,
@@ -117,6 +120,26 @@ export function BranchCanvasDialog({
       ),
     [selectedScenes, visibleSelectedSceneId, selectSceneFromCanvas, openMediaPreview, t],
   );
+  const positionsByVersion = useRef(new Map<string, Map<string, SceneNode['position']>>());
+  const [canvasNodes, setCanvasNodes] = useState<SceneNode[]>(graph.nodes);
+  useEffect(() => {
+    let savedPositions: Map<string, SceneNode['position']> | undefined;
+    if (selectedVersion) {
+      savedPositions =
+        positionsByVersion.current.get(selectedVersion.id) ??
+        loadCanvasPositions(selectedVersion.id);
+      positionsByVersion.current.set(selectedVersion.id, savedPositions);
+    }
+    setCanvasNodes(
+      graph.nodes.map((node) => ({
+        ...node,
+        position: savedPositions?.get(node.id) ?? node.position,
+      })),
+    );
+  }, [graph, selectedVersion]);
+  const updateCanvasNodes = useCallback((changes: NodeChange<SceneNode>[]) => {
+    setCanvasNodes((current) => applyNodeChanges(changes, current));
+  }, []);
 
   return (
     <Dialog
@@ -177,15 +200,24 @@ export function BranchCanvasDialog({
             <div className="min-h-0 overflow-hidden rounded-lg border bg-background">
               {selectedScenes.length ? (
                 <ReactFlow<SceneNode, Edge>
-                  nodes={graph.nodes}
+                  nodes={canvasNodes}
                   edges={graph.edges}
                   fitView
                   fitViewOptions={{ padding: 0.24, maxZoom: 1.1 }}
                   minZoom={0.25}
                   maxZoom={1.8}
-                  nodesDraggable={false}
+                  nodesDraggable
                   nodesConnectable={false}
                   elementsSelectable
+                  onNodesChange={updateCanvasNodes}
+                  onNodeDragStop={(_event, node) => {
+                    if (!selectedVersion) return;
+                    const savedPositions =
+                      positionsByVersion.current.get(selectedVersion.id) ?? new Map();
+                    savedPositions.set(node.id, node.position);
+                    positionsByVersion.current.set(selectedVersion.id, savedPositions);
+                    saveCanvasPositions(selectedVersion.id, savedPositions);
+                  }}
                   proOptions={{ hideAttribution: true }}
                   aria-label={t('dashboard.branchCanvas')}
                   onNodeContextMenu={(event, node) => {
@@ -342,12 +374,46 @@ function sceneGraph(
     levels.set(depth, [...(levels.get(depth) ?? []), scene]);
   }
 
-  const widestLevel = Math.max(1, ...[...levels.values()].map((level) => level.length));
+  const orderedLevels = [...levels.entries()].sort(([left], [right]) => left - right);
+  const orderById = new Map<string, number>();
+  for (const [depth, level] of orderedLevels) {
+    level.sort((left, right) => {
+      if (depth === 0) return left.sequence - right.sequence;
+      const leftParentOrder = orderById.get(left.parentSceneId ?? '') ?? Number.MAX_SAFE_INTEGER;
+      const rightParentOrder = orderById.get(right.parentSceneId ?? '') ?? Number.MAX_SAFE_INTEGER;
+      if (leftParentOrder !== rightParentOrder) return leftParentOrder - rightParentOrder;
+      const leftParent = left.parentSceneId ? sceneById.get(left.parentSceneId) : null;
+      const rightParent = right.parentSceneId ? sceneById.get(right.parentSceneId) : null;
+      const leftOptionIndex = leftParent?.options.findIndex(
+        (option) => option.id === left.sourceOptionId,
+      );
+      const rightOptionIndex = rightParent?.options.findIndex(
+        (option) => option.id === right.sourceOptionId,
+      );
+      const normalizedLeftOptionIndex =
+        leftOptionIndex === undefined || leftOptionIndex === -1
+          ? Number.MAX_SAFE_INTEGER
+          : leftOptionIndex;
+      const normalizedRightOptionIndex =
+        rightOptionIndex === undefined || rightOptionIndex === -1
+          ? Number.MAX_SAFE_INTEGER
+          : rightOptionIndex;
+      if (normalizedLeftOptionIndex !== normalizedRightOptionIndex) {
+        return normalizedLeftOptionIndex - normalizedRightOptionIndex;
+      }
+      return left.sequence - right.sequence;
+    });
+    level.forEach((scene, index) => {
+      orderById.set(scene.id, index);
+    });
+  }
+
+  const widestLevel = Math.max(1, ...orderedLevels.map(([, level]) => level.length));
   const columnGap = 260;
   const rowGap = 210;
   const nodes: SceneNode[] = [];
 
-  for (const [depth, level] of levels) {
+  for (const [depth, level] of orderedLevels) {
     const levelWidth = (level.length - 1) * columnGap;
     const canvasWidth = (widestLevel - 1) * columnGap;
     const offset = (canvasWidth - levelWidth) / 2;
@@ -541,4 +607,42 @@ function isBranchCanvasFloatingLayer(target: EventTarget | null) {
       ),
     )
   );
+}
+
+function loadCanvasPositions(versionId: string) {
+  const positions = new Map<string, SceneNode['position']>();
+  try {
+    const stored = window.localStorage.getItem(`${CANVAS_LAYOUT_STORAGE_PREFIX}${versionId}`);
+    if (!stored) return positions;
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return positions;
+    for (const [nodeId, position] of Object.entries(parsed)) {
+      if (
+        position &&
+        typeof position === 'object' &&
+        'x' in position &&
+        'y' in position &&
+        typeof position.x === 'number' &&
+        typeof position.y === 'number' &&
+        Number.isFinite(position.x) &&
+        Number.isFinite(position.y)
+      ) {
+        positions.set(nodeId, { x: position.x, y: position.y });
+      }
+    }
+  } catch {
+    return positions;
+  }
+  return positions;
+}
+
+function saveCanvasPositions(versionId: string, positions: Map<string, SceneNode['position']>) {
+  try {
+    window.localStorage.setItem(
+      `${CANVAS_LAYOUT_STORAGE_PREFIX}${versionId}`,
+      JSON.stringify(Object.fromEntries(positions)),
+    );
+  } catch {
+    // Canvas layout is a local preference; dragging should still work when storage is unavailable.
+  }
 }
