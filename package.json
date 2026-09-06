@@ -19,6 +19,12 @@
     "typecheck:web": "pnpm --filter @infinite-world/web typecheck",
     "typecheck:api": "pnpm --filter @infinite-world/api typecheck"
   },
+  "pnpm": {
+    "overrides": {
+      "adm-zip": "0.6.0",
+      "sharp": "0.35.4"
+    }
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",
     "@commitlint/cli": "19.8.1",

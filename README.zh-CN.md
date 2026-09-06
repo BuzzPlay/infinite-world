@@ -18,7 +18,7 @@
 > 早期开发阶段——API 和本地存储格式可能变化。
 
 <p align="center">
-  <strong>演示：</strong> 当前原型的基础交互流程。
+  <strong>演示：</strong> 当前原型演示。
 </p>
 
 <p align="center">
