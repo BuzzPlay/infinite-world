@@ -90,6 +90,7 @@ export function normalizeStoredRun(
   next.scenes = next.scenes.map((scene) => ({
     ...scene,
     continuityImageUrl: scene.continuityImageUrl ?? null,
+    interactiveRegions: scene.interactiveRegions ?? [],
   }));
   next.generationHistory = (run.generationHistory ?? []).map(clone);
   next.versions = normalizeRunVersions(run, fallbackGeneration);
@@ -161,9 +162,34 @@ export function appendScene(
     mediaType: scene.mediaType,
     contextSummary: scene.contextSummary,
     options: scene.options?.map(clone) ?? [],
+    interactiveRegions: [],
     generatedAt: nowIso(),
     generationLatencyMs: scene.generationLatencyMs,
   };
+  const generatedRegions = scene.interactiveRegions ?? [];
+  snapshot.interactiveRegions = generatedRegions.map((region, regionIndex) => {
+    const regionId = `${snapshot.id}-region-${regionIndex + 1}`;
+    const optionIds = region.options.map((title, optionIndex) => {
+      const optionId = `${snapshot.id}-option-${regionIndex + 1}-${optionIndex + 1}`;
+      snapshot.options.push({
+        id: optionId,
+        label: String.fromCharCode(65 + optionIndex),
+        title,
+        votes: 0,
+        regionId,
+      });
+      return optionId;
+    });
+    return {
+      id: regionId,
+      label: region.label,
+      x: region.x,
+      y: region.y,
+      width: region.width,
+      height: region.height,
+      optionIds,
+    };
+  });
   run.scenes.push(snapshot);
   run.currentScene = snapshot;
   run.generationTask = null;

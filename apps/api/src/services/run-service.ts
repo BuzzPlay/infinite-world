@@ -27,7 +27,13 @@ import {
 } from '../domain/run.js';
 import type { RuntimeState } from '../runtime/state.js';
 import { ApiError } from '../shared/errors.js';
-import type { GeneratedScene, RunConfigInput, RunStartInput, StoredRun } from '../types.js';
+import type {
+  GeneratedInteractiveRegion,
+  GeneratedScene,
+  RunConfigInput,
+  RunStartInput,
+  StoredRun,
+} from '../types.js';
 
 export class RunService {
   constructor(private readonly state: RuntimeState) {}
@@ -379,6 +385,46 @@ export class RunService {
       title,
       votes: 0,
     }));
+    run.revision += 1;
+    this.state.persist();
+    return clone(run);
+  }
+
+  replaceSceneInteractiveRegions(
+    worldId: string,
+    sceneId: string,
+    regions: GeneratedInteractiveRegion[],
+  ) {
+    this.requireActiveWorld(worldId);
+    const run = this.requireRun(worldId);
+    const scene = run.scenes.find((candidate) => candidate.id === sceneId);
+    if (!scene) throw new ApiError(404, 'not_found', 'scene does not exist');
+
+    const options = [] as StoredRun['scenes'][number]['options'];
+    scene.interactiveRegions = regions.map((region, regionIndex) => {
+      const regionId = `${scene.id}-region-${regionIndex + 1}`;
+      const optionIds = region.options.map((title, optionIndex) => {
+        const optionId = `${scene.id}-option-${regionIndex + 1}-${optionIndex + 1}`;
+        options.push({
+          id: optionId,
+          label: String.fromCharCode(65 + optionIndex),
+          title,
+          votes: 0,
+          regionId,
+        });
+        return optionId;
+      });
+      return {
+        id: regionId,
+        label: region.label,
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height,
+        optionIds,
+      };
+    });
+    scene.options = options;
     run.revision += 1;
     this.state.persist();
     return clone(run);

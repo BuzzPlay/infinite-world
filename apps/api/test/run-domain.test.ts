@@ -161,6 +161,38 @@ describe('scene versions', () => {
     assert.equal(restored.versions[0]?.generation.model, LTX_23_FAST_VIDEO_MODEL);
     assert.equal(restored.versions[0]?.generation.visionModel, FAL_GEMINI_MODEL);
   });
+
+  test('stores image interaction regions with their scene options', () => {
+    const run = newRun('world-1', 'run-1');
+    const scene = appendScene(
+      run,
+      {
+        ...generatedScene('Image scene'),
+        mediaType: 'video',
+        interactiveRegions: [
+          {
+            label: 'Lantern',
+            x: 0.1,
+            y: 0.2,
+            width: 0.2,
+            height: 0.3,
+            options: ['Pick up the lantern', 'Inspect the lantern'],
+          },
+        ],
+        options: [],
+      },
+      DEFAULT_GENERATION,
+      null,
+    );
+
+    assert.equal(scene.interactiveRegions?.length, 1);
+    assert.equal(scene.interactiveRegions?.[0]?.optionIds.length, 2);
+    assert.deepEqual(
+      scene.options.map((option) => option.title),
+      ['Pick up the lantern', 'Inspect the lantern'],
+    );
+    assert.equal(scene.options[0]?.regionId, scene.interactiveRegions?.[0]?.id);
+  });
 });
 
 function generatedScene(prompt: string): GeneratedScene {

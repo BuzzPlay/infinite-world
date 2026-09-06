@@ -55,7 +55,7 @@ describe('local API', () => {
       url: '/api/worlds',
       payload: {
         world: {
-          interactionType: 'voice',
+          interactionType: 'unknown',
           name: 'Unsupported world',
           prompt: 'An unsupported interaction',
           generation: structuredClone(DEFAULT_GENERATION),

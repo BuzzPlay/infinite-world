@@ -43,7 +43,8 @@ export function WorldSetupForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="text">{t('project.interaction.text')}</SelectItem>
-              <SelectItem value="voice-text">{t('project.interaction.voice-text')}</SelectItem>
+              <SelectItem value="voice">{t('project.interaction.voice')}</SelectItem>
+              <SelectItem value="image">{t('project.interaction.image')}</SelectItem>
             </SelectContent>
           </Select>
         </Field>

@@ -172,7 +172,8 @@
     "interactionType": "Interaction type",
     "interaction": {
       "text": "Text",
-      "voice-text": "Voice and text"
+      "voice": "Voice",
+      "image": "Image"
     },
     "name": "Name",
     "namePlaceholder": "A name for this world",

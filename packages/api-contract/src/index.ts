@@ -4,7 +4,7 @@ export type GenerationMode = 'regular' | 'nightmare' | 'cohesive' | 'visual' | '
 
 export type StylePreset = 'cohesive' | 'chaotic' | 'nightmare' | 'custom';
 
-export type InteractionType = 'text' | 'voice-text';
+export type InteractionType = 'text' | 'voice' | 'image';
 
 export interface CharacterReference {
   image: string;
@@ -65,6 +65,7 @@ export interface SceneSnapshot {
   mediaType: 'none' | 'image' | 'video';
   contextSummary: string;
   options: SceneOptionSnapshot[];
+  interactiveRegions?: InteractiveRegionSnapshot[];
   generatedAt: string;
   generationLatencyMs: number;
 }
@@ -74,6 +75,17 @@ export interface SceneOptionSnapshot {
   label: string;
   title: string;
   votes: number;
+  regionId?: string | null;
+}
+
+export interface InteractiveRegionSnapshot {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  optionIds: string[];
 }
 
 export interface RunMetrics {

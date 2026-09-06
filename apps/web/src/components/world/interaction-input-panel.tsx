@@ -33,7 +33,7 @@ export function InteractionInputPanel({
     return () => recorderRef.current?.stop();
   }, []);
 
-  if (interactionType !== 'voice-text') return null;
+  if (interactionType !== 'voice') return null;
 
   const transcribe = async (blob: Blob) => {
     setLoading(true);

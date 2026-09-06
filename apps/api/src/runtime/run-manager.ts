@@ -1,6 +1,7 @@
 import { generationForRunVersion, isActive } from '../domain/run.js';
 import type { EventHub } from '../events.js';
 import { FfmpegOutput } from '../live/output/ffmpeg.js';
+import { ImageInteractionGenerator } from '../providers/ai/image-interaction.js';
 import { SceneOptionGenerator } from '../providers/ai/scene-options.js';
 import { VideoGenerator } from '../providers/ai/video.js';
 import type { RunService } from '../services/run-service.js';
@@ -19,6 +20,7 @@ export class RunManager {
     private readonly events: EventHub,
     private readonly generator = new VideoGenerator(),
     private readonly optionGenerator = new SceneOptionGenerator(),
+    private readonly imageInteractionGenerator = new ImageInteractionGenerator(),
   ) {}
 
   start(worldId: string, input: RunStartInput) {
@@ -136,16 +138,26 @@ export class RunManager {
 
   async regenerateSceneOptions(worldId: string, sceneId: string) {
     const context = this.runs.sceneOptionContext(worldId, sceneId);
-    let titles: string[];
     try {
-      titles = await this.optionGenerator.generate(context, this.state.provider);
+      if (context.world.interactionType === 'image') {
+        const regions = await this.imageInteractionGenerator.generate(
+          context.world,
+          context.scene,
+          this.state.provider,
+        );
+        const run = this.runs.replaceSceneInteractiveRegions(worldId, sceneId, regions);
+        this.events.publish({ type: 'run.status', run });
+        return run;
+      }
+
+      const titles = await this.optionGenerator.generate(context, this.state.provider);
+      const run = this.runs.replaceSceneOptions(worldId, sceneId, titles);
+      this.events.publish({ type: 'run.status', run });
+      return run;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'scene option generation failed';
       throw new ApiError(502, 'scene_option_generation_failed', message);
     }
-    const run = this.runs.replaceSceneOptions(worldId, sceneId, titles);
-    this.events.publish({ type: 'run.status', run });
-    return run;
   }
 
   metrics(worldId: string) {
@@ -191,9 +203,21 @@ export class RunManager {
           scene.sourceContinuityImageUrl,
         );
       }
+      const interactiveScene =
+        world.interactionType === 'image'
+          ? {
+              ...scene,
+              interactiveRegions: await this.imageInteractionGenerator.generate(
+                world,
+                scene,
+                this.state.provider,
+                signal,
+              ),
+            }
+          : scene;
       const appended = this.runs.append(
         worldId,
-        scene,
+        interactiveScene,
         generation,
         input.parentSceneId
           ? { sceneId: input.parentSceneId, optionId: input.sourceOptionId }

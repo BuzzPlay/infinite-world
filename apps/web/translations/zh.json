@@ -172,7 +172,8 @@
     "interactionType": "交互类型",
     "interaction": {
       "text": "文字交互",
-      "voice-text": "语音和文字交互"
+      "voice": "语音",
+      "image": "图片"
     },
     "name": "名称",
     "namePlaceholder": "为这个世界命名",
