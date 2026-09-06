@@ -18,7 +18,7 @@ Understand a world, simulate how it changes, and interact with what happens next
 > Early development — APIs and stored data may change.
 
 <p align="center">
-  <strong>Demo:</strong> Basic interaction flow from the current prototype.
+  <strong>Demo:</strong> Current prototype demo.
 </p>
 
 <p align="center">
