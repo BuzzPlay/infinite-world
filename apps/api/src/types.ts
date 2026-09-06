@@ -114,10 +114,20 @@ export interface GeneratedScene {
   previewUrl: string;
   mediaType: SceneSnapshot['mediaType'];
   options?: SceneOptionSnapshot[];
+  interactiveRegions?: GeneratedInteractiveRegion[];
   continuityImageUrl?: string | null;
   sourceContinuityImageUrl?: string | null;
   generationLatencyMs: number;
   selectedComment?: string | null;
+}
+
+export interface GeneratedInteractiveRegion {
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  options: string[];
 }
 
 export type RealtimeEvent =

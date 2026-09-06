@@ -1,6 +1,7 @@
 import type {
   GenerationSettings,
   InteractionType,
+  InteractiveRegionSnapshot,
   RunState,
   SceneSnapshot,
 } from '@infinite-world/api-contract';
@@ -85,6 +86,8 @@ export function PreviewCanvas({
 }: PreviewCanvasProps) {
   const { t } = useTranslation();
   const [autoEnabled, setAutoEnabled] = useState(false);
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+  const [videoEnded, setVideoEnded] = useState(false);
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
   const autoAdvanceRef = useRef(false);
   const autoCountdownRef = useRef<number | null>(null);
@@ -106,8 +109,18 @@ export function PreviewCanvas({
   const playbackActive = isActive;
   const showRunButton = showRunCta && !playbackActive;
   const showGenerating = isRunning && !hasMedia;
-  const showBranchChoices = interactionType !== 'voice-text' && hasMedia && currentScene !== null;
-  const hasBranchChoices = Boolean(currentScene?.options.length);
+  const imageMode = interactionType === 'image';
+  const regions = currentScene?.interactiveRegions ?? [];
+  const selectedRegion = regions.find((region) => region.id === selectedRegionId) ?? null;
+  const visibleOptions = imageMode
+    ? (currentScene?.options.filter((option) => option.regionId === selectedRegionId) ?? [])
+    : (currentScene?.options ?? []);
+  const imageInteractionReady =
+    !imageMode || displayedMediaScene?.mediaType !== 'video' || videoEnded;
+  const showBranchChoices = imageMode
+    ? imageInteractionReady && hasMedia && (selectedRegion !== null || regions.length === 0)
+    : interactionType !== 'voice' && hasMedia && currentScene !== null;
+  const hasBranchChoices = Boolean(visibleOptions.length);
   const disableSceneNavigation = busy !== null || showGenerating || generatingChoice;
   const clearAutoCountdown = useCallback(() => {
     autoCountdownRef.current = null;
@@ -118,6 +131,12 @@ export function PreviewCanvas({
     setAutoEnabled(false);
     clearAutoCountdown();
   }, [clearAutoCountdown]);
+
+  useEffect(() => {
+    setSelectedRegionId(null);
+    setVideoEnded(!imageMode);
+    if (!currentSceneId) return;
+  }, [currentSceneId, imageMode]);
 
   useEffect(() => {
     const sceneChanged = resetStateRef.current.sceneId !== currentSceneId;
@@ -213,6 +232,8 @@ export function PreviewCanvas({
           <PreviewVideo
             scene={displayedMediaScene}
             sceneLabel={t('dashboard.scene', { sequence: displayedMediaScene.sequence })}
+            loop={!imageMode}
+            onEnded={() => setVideoEnded(true)}
           />
         ) : (
           // biome-ignore lint/performance/noImgElement: Generated media can use arbitrary provider URLs.
@@ -227,6 +248,15 @@ export function PreviewCanvas({
       )}
       {hasMedia ? (
         <div className="pointer-events-none absolute inset-0 bg-black/15" aria-hidden="true" />
+      ) : null}
+
+      {imageMode && imageInteractionReady && regions.length > 0 ? (
+        <InteractiveRegionOverlay
+          regions={regions}
+          selectedRegionId={selectedRegionId}
+          disabled={busy !== null || generatingChoice}
+          onSelect={setSelectedRegionId}
+        />
       ) : null}
 
       {showRunButton ? (
@@ -256,12 +286,12 @@ export function PreviewCanvas({
           role="status"
           aria-live="polite"
         >
-          <div className="grid justify-items-center gap-4">
+          <div className="flex w-full max-w-xs flex-col items-center gap-4 text-center">
             <div className="grid size-16 place-items-center" aria-hidden="true">
               {/* biome-ignore lint/performance/noImgElement: The existing local logo is a static UI asset. */}
               <img className="world-building-logo size-14 object-contain" src="/logo.svg" alt="" />
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="block w-full text-sm text-muted-foreground">
               {t('dashboard.buildingWorld')}
               <span
                 className="world-building-dots inline-block w-[1.5em] text-left"
@@ -349,20 +379,20 @@ export function PreviewCanvas({
         className={cn(
           cn(
             'pointer-events-none absolute inset-x-3 z-10 flex justify-center sm:inset-x-6',
-            interactionType === 'voice-text' ? 'bottom-28 sm:bottom-32' : 'bottom-4 sm:bottom-6',
+            interactionType === 'voice' ? 'bottom-28 sm:bottom-32' : 'bottom-4 sm:bottom-6',
           ),
           !showBranchChoices && 'hidden',
         )}
       >
         <BranchChoicePanel
-          options={currentScene?.options ?? []}
+          options={visibleOptions}
           selectedOptionId={selectedOptionId}
           disabled={busy !== null || generatingChoice}
           generating={generatingChoice}
           regenerating={busy === 'regenerate-options'}
           autoEnabled={autoEnabled}
           autoCountdown={autoCountdown}
-          onAutoToggle={toggleAuto}
+          onAutoToggle={imageMode ? undefined : toggleAuto}
           onSelect={(option) => currentScene && selectOption(currentScene.id, option.id)}
           onRegenerate={
             currentScene && onRegenerateOptions
@@ -387,7 +417,17 @@ export function PreviewCanvas({
   );
 }
 
-function PreviewVideo({ scene, sceneLabel }: { scene: SceneSnapshot; sceneLabel: string }) {
+function PreviewVideo({
+  scene,
+  sceneLabel,
+  loop,
+  onEnded,
+}: {
+  scene: SceneSnapshot;
+  sceneLabel: string;
+  loop: boolean;
+  onEnded: () => void;
+}) {
   const nextVideoRef = useRef<HTMLVideoElement>(null);
   const [activeScene, setActiveScene] = useState(scene);
   const [queuedScene, setQueuedScene] = useState<SceneSnapshot | null>(null);
@@ -426,10 +466,11 @@ function PreviewVideo({ scene, sceneLabel }: { scene: SceneSnapshot; sceneLabel:
         src={activeScene.previewUrl}
         autoPlay
         muted
-        loop
+        loop={loop}
         playsInline
         controls={false}
         aria-label={sceneLabel}
+        onEnded={onEnded}
       />
       {queuedScene?.previewUrl && queuedScene.mediaType === 'video' ? (
         <video
@@ -442,7 +483,7 @@ function PreviewVideo({ scene, sceneLabel }: { scene: SceneSnapshot; sceneLabel:
           src={queuedScene.previewUrl}
           autoPlay
           muted
-          loop
+          loop={loop}
           playsInline
           controls={false}
           preload="auto"
@@ -455,6 +496,52 @@ function PreviewVideo({ scene, sceneLabel }: { scene: SceneSnapshot; sceneLabel:
           aria-label={sceneLabel}
         />
       ) : null}
+    </div>
+  );
+}
+
+function InteractiveRegionOverlay({
+  regions,
+  selectedRegionId,
+  disabled,
+  onSelect,
+}: {
+  regions: InteractiveRegionSnapshot[];
+  selectedRegionId: string | null;
+  disabled: boolean;
+  onSelect: (regionId: string) => void;
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10">
+      {regions.map((region) => (
+        <button
+          key={region.id}
+          type="button"
+          className={cn(
+            'group pointer-events-auto absolute rounded-md border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/80',
+          )}
+          style={{
+            left: `${region.x * 100}%`,
+            top: `${region.y * 100}%`,
+            width: `${region.width * 100}%`,
+            height: `${region.height * 100}%`,
+          }}
+          disabled={disabled}
+          onClick={() => onSelect(region.id)}
+          aria-label={region.label}
+          title={region.label}
+        >
+          <span
+            className={cn(
+              'absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-blue transition-[box-shadow,transform] group-hover:scale-125',
+              selectedRegionId === region.id
+                ? 'size-4 shadow-[0_0_0_5px_rgba(59,130,246,0.3),0_0_18px_rgba(59,130,246,0.8)]'
+                : 'size-3 shadow-[0_0_0_3px_rgba(59,130,246,0.2),0_0_12px_rgba(59,130,246,0.65)]',
+            )}
+            aria-hidden="true"
+          />
+        </button>
+      ))}
     </div>
   );
 }

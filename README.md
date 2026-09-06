@@ -51,7 +51,7 @@ Infinite World is open source so developers, creators, and researchers can build
 | Direction | Progress |
 | --- | --- |
 | Text interaction | Use text input and choices to influence the world state and upcoming scenes. In development. |
-| Voice and text interaction | Switch between editable text and browser voice input for the same world interaction. In development. |
+| Voice interaction | Use browser voice input for the same world interaction. In development. |
 | Continuous worlds | Preserve world state and context across scenes. Continuous generation is being improved. |
 | Local preview | Configure worlds, run them locally, and inspect history and metrics. Prototype available. |
 | Live | Interactive live streaming is in development. |
