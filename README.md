@@ -17,6 +17,14 @@ Understand a world, simulate how it changes, and interact with what happens next
 > [!NOTE]
 > Early development — APIs and stored data may change.
 
+<p align="center">
+  <strong>Demo:</strong> Basic interaction flow from the current prototype.
+</p>
+
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/2af88467-0e25-4529-916e-d576ecb59291" controls muted playsinline width="640"></video>
+</p>
+
 ## What Is Infinite World?
 
 Infinite World combines multimodal understanding, world simulation, and interaction in one continuous loop:
@@ -28,7 +36,9 @@ Infinite World combines multimodal understanding, world simulation, and interact
 
 ## Why Build It?
 
-[fal.ai](https://fal.ai/)'s work on H3 inference optimization showed us a possibility: use frontier LLMs and multimodal models to build interactive content where people can shape a world as it changes. Infinite World starts there.
+Faster model inference is making interactive, continuously changing worlds more practical.
+
+Infinite World connects multimodal understanding, world state, and interaction so people and agents can shape what happens next.
 
 Most multimodal generation still produces isolated pieces of content. Infinite World connects understanding, simulation, and interaction in a world that keeps running.
 
@@ -44,7 +54,7 @@ Infinite World is open source so developers, creators, and researchers can build
 | Voice and text interaction | Switch between editable text and browser voice input for the same world interaction. In development. |
 | Continuous worlds | Preserve world state and context across scenes. Continuous generation is being improved. |
 | Local preview | Configure worlds, run them locally, and inspect history and metrics. Prototype available. |
-| Live output | Continuous RTMP output through FFmpeg is in development. |
+| Live | Interactive live streaming is in development. |
 | More interactions | Chat, audio, mouse, and keyboard input are planned. |
 
 ## Quick Start
@@ -53,7 +63,7 @@ Infinite World is open source so developers, creators, and researchers can build
 
 - Node.js 20+
 - pnpm 10+
-- FFmpeg on `PATH` only when using RTMP output
+- FFmpeg (only needed for live streaming)
 
 Clone the repository and install the workspace dependencies:
 

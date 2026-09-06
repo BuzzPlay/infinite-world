@@ -17,6 +17,14 @@
 > [!NOTE]
 > 早期开发阶段——API 和本地存储格式可能变化。
 
+<p align="center">
+  <strong>演示：</strong> 当前原型的基础交互流程。
+</p>
+
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/2af88467-0e25-4529-916e-d576ecb59291" controls muted playsinline width="640"></video>
+</p>
+
 ## Infinite World 是什么？
 
 Infinite World 将多模态理解、世界模拟和交互连接成一个持续运行的循环：
@@ -28,7 +36,9 @@ Infinite World 将多模态理解、世界模拟和交互连接成一个持续�
 
 ## 为什么构建 Infinite World？
 
-[fal.ai](https://fal.ai/) 对 H3 推理效率的优化，让我们看到一种可能：用前沿 LLM 和多模态模型构建互动内容系统，让人参与塑造一个持续变化的世界。Infinite World 从这里开始。
+更快的模型推理，正在让可交互、持续变化的世界变得更可行。
+
+Infinite World 将多模态理解、世界状态和交互连接起来，让人和智能体共同影响接下来发生的事情。
 
 目前的多模态生成仍以单段内容为主。Infinite World 将理解、模拟和交互连接起来，让世界持续运行。
 
@@ -44,7 +54,7 @@ Infinite World 选择开源，希望更多开发者、创作者和研究者一�
 | 语音和文字交互 | 在可编辑文字输入和浏览器语音输入之间切换，开发中 |
 | 连续世界 | 跨场景保留世界状态和上下文，连续生成仍在完善 |
 | 本地预览 | 配置并运行世界，查看运行历史和指标，已有原型 |
-| 直播输出 | 通过 FFmpeg 向 RTMP 持续输出，开发中 |
+| 直播 | 直播互动功能开发中 |
 | 更多交互 | 聊天、声音、鼠标和键盘输入，计划中 |
 
 ## 快速开始
@@ -53,7 +63,7 @@ Infinite World 选择开源，希望更多开发者、创作者和研究者一�
 
 - Node.js 20+
 - pnpm 10+
-- 仅在使用 RTMP 输出时需要将 FFmpeg 加入 `PATH`
+- FFmpeg（仅直播时需要）
 
 克隆仓库并安装 workspace 依赖：
 
