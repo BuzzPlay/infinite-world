@@ -51,6 +51,7 @@ Routes do not call providers or mutate persistence directly. Services coordinate
 | `DELETE` | `/api/worlds/:worldId/run/scenes/:sceneId` | Delete a non-root scene and its descendant branch. Version roots are deleted through run history. |
 | `DELETE` | `/api/worlds/:worldId/run/versions/:versionId` | Delete a stopped historical run version and its generated scenes. |
 | `GET` / `PUT` | `/api/settings/providers` | Read or update local provider and chat settings. |
+| `POST` | `/api/transcription?language=zh|en` | Transcribe a browser-recorded audio body with the local whisper.cpp runtime. |
 | `GET` | `/api/events` | Subscribe to snapshots, status, scene, and error events. |
 | `WS` | `/api/worlds/:worldId/run/webrtc` | Browser-output signaling endpoint. |
 
@@ -68,3 +69,16 @@ World configuration stores the current defaults for vision and video. Each run v
 Video configuration stores a stable model-family ID rather than a provider endpoint. The API resolves that family to a text-to-video endpoint when the first scene has no initial image, or an image-to-video endpoint when it does. The initial image is used only for the first scene. Supported durations, frame rates, resolutions, aspect ratios, and endpoint mappings live in the shared model catalog.
 
 An RTMP run starts FFmpeg for generated video and replaces the input as new scenes arrive. Set `INFINITE_WORLD_FFMPEG_BIN` when FFmpeg is not on `PATH`. Browser output is kept as a separate signaling path so it can be replaced by a native transport later.
+
+Voice input records audio in the Web application and sends the audio bytes to the local API. While
+recording, browsers that expose the Web Speech API show interim text above the input button. That
+interim text is only feedback and never starts a run. When the user clicks the button again, the
+recording is sent to the API; the API uses FFmpeg to normalize it to 16 kHz mono WAV, then invokes
+`whisper-cli` from whisper.cpp. The final local transcription is the only text submitted to the
+current scene. Browsers without interim speech recognition still support the record-then-transcribe
+fallback.
+
+The `ggml-base` model is downloaded during the API build, or on the first transcription request if
+it is missing, and cached under the local data directory's `models/` folder. The model is not part of
+project state and is never committed to the repository. Set `INFINITE_WORLD_WHISPER_BIN` and
+`INFINITE_WORLD_WHISPER_MODEL` when the executable or model is stored elsewhere.

@@ -63,7 +63,8 @@ Infinite World is open source so developers, creators, and researchers can build
 
 - Node.js 20+
 - pnpm 10+
-- FFmpeg (only needed for live streaming)
+- FFmpeg (used for voice transcription and live output)
+- whisper.cpp CLI (`whisper-cli`)
 
 Clone the repository and install the workspace dependencies:
 
@@ -72,6 +73,21 @@ git clone https://github.com/BuzzPlay/infinite-world.git
 cd infinite-world
 pnpm install
 ```
+
+Install whisper.cpp and FFmpeg for your platform. For example, on macOS:
+
+```bash
+brew install whisper-cpp ffmpeg
+```
+
+On Linux, install or build the `whisper.cpp` CLI and FFmpeg with your distribution's package
+manager. On Windows, download or build the Windows CLI and add its directory to `PATH`.
+
+The API build prepares the `ggml-base` Whisper model automatically and stores it outside the
+repository. The first build or first voice request needs an Internet connection. Set
+`INFINITE_WORLD_WHISPER_BIN` is optional when `whisper-cli` is already on `PATH`. Set it only when
+the executable has a custom name or location. `INFINITE_WORLD_WHISPER_MODEL` is also optional; set
+it only when using a custom model path.
 
 Start the API and Web application in separate terminals:
 

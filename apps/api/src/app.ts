@@ -9,12 +9,14 @@ import { registerHealthRoutes } from './routes/health.js';
 import { registerMediaRoutes } from './routes/media.js';
 import { registerRunRoutes } from './routes/runs.js';
 import { registerSettingsRoutes } from './routes/settings.js';
+import { registerTranscriptionRoutes } from './routes/transcription.js';
 import { registerWebRtcRoutes } from './routes/webrtc.js';
 import { registerWorldRoutes } from './routes/worlds.js';
 import { RunManager } from './runtime/run-manager.js';
 import { RuntimeState } from './runtime/state.js';
 import { RunService } from './services/run-service.js';
 import { SettingsService } from './services/settings-service.js';
+import { TranscriptionService } from './services/transcription-service.js';
 import { WorldService } from './services/world-service.js';
 import { ApiError } from './shared/errors.js';
 
@@ -32,6 +34,11 @@ export function buildApp(options: BuildAppOptions = {}) {
   const runs = new RunService(state);
   const settings = new SettingsService(state);
   const manager = new RunManager(state, runs, events);
+  const transcription = new TranscriptionService();
+
+  app.addContentTypeParser(/^audio\/.+$/, { parseAs: 'buffer' }, (_request, body, done) => {
+    done(null, body);
+  });
 
   app.register(cors, {
     origin: [...corsOrigins],
@@ -46,6 +53,7 @@ export function buildApp(options: BuildAppOptions = {}) {
     registerSettingsRoutes(routes, settings);
     registerEventRoutes(routes, state, events, corsOrigins);
     registerMediaRoutes(routes);
+    registerTranscriptionRoutes(routes, transcription);
   });
 
   app.setErrorHandler((error, _request, reply) => {
