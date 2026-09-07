@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "prepare:whisper": "node scripts/prepare-whisper-model.mjs",
+    "build": "pnpm prepare:whisper && tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "test": "tsc --noEmit -p tsconfig.test.json && tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"

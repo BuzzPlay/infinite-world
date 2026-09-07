@@ -119,6 +119,21 @@ export function submitInteraction(worldId: string, input: string, sceneId?: stri
   });
 }
 
+export async function transcribeAudio(audio: Blob, language: 'zh' | 'en') {
+  const response = await fetch(apiUrl(`/api/transcription?language=${language}`), {
+    method: 'POST',
+    headers: { 'Content-Type': audio.type || 'audio/webm' },
+    body: audio,
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    throw new Error(body?.error?.message ?? `Transcription failed with status ${response.status}`);
+  }
+  return (await response.json()) as { text: string };
+}
+
 export function activateScene(worldId: string, sceneId: string) {
   return request<RunResponse>(`/api/worlds/${worldId}/run/scenes/${sceneId}/activate`, {
     method: 'POST',

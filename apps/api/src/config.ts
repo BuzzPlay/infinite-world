@@ -13,6 +13,8 @@ export const config = {
   corsOrigins: corsOriginsFromEnv(process.env.INFINITE_WORLD_CORS_ORIGINS),
   dataDir: dataDirectoryPath(),
   ffmpegBinary: process.env.INFINITE_WORLD_FFMPEG_BIN?.trim() || 'ffmpeg',
+  whisperBinary: process.env.INFINITE_WORLD_WHISPER_BIN?.trim() || 'whisper-cli',
+  whisperModelPath: process.env.INFINITE_WORLD_WHISPER_MODEL?.trim(),
 };
 
 function numberFromEnv(name: string, fallback: number, min: number, max: number) {

@@ -63,7 +63,8 @@ Infinite World 选择开源，希望更多开发者、创作者和研究者一�
 
 - Node.js 20+
 - pnpm 10+
-- FFmpeg（仅直播时需要）
+- FFmpeg（语音识别和直播输出使用）
+- whisper.cpp CLI（`whisper-cli`）
 
 克隆仓库并安装 workspace 依赖：
 
@@ -72,6 +73,21 @@ git clone https://github.com/BuzzPlay/infinite-world.git
 cd infinite-world
 pnpm install
 ```
+
+请根据当前平台安装 whisper.cpp 和 FFmpeg。例如 macOS 可以使用 Homebrew：
+
+```bash
+brew install whisper-cpp ffmpeg
+```
+
+Linux 可以使用发行版的包管理器安装或自行构建 `whisper.cpp` CLI 和 FFmpeg。Windows 可以
+下载或构建对应的 CLI，并将所在目录加入 `PATH`。
+
+API 构建时会自动准备 `ggml-base` Whisper 模型，并将模型缓存到仓库之外。第一次构建或第一次
+使用语音输入时需要网络连接。如果使用自定义安装或模型路径，可以在 `apps/api/.env` 中设置
+如果 `whisper-cli` 已经在 `PATH` 中，`INFINITE_WORLD_WHISPER_BIN` 不需要填写。只有在 CLI
+使用了自定义名称或路径时才需要设置。`INFINITE_WORLD_WHISPER_MODEL` 同样是可选项，仅在使用
+自定义模型路径时设置。
 
 分别在两个终端启动 API 和 Web 应用：
 

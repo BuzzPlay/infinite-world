@@ -408,7 +408,7 @@ export function PreviewCanvas({
         <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
           <InteractionInputPanel
             interactionType={interactionType ?? 'text'}
-            disabled={busy !== null || !playbackActive}
+            disabled={busy !== null || generatingChoice || !playbackActive}
             onSubmit={(input) => onInputSubmit?.(currentScene.id, input)}
           />
         </div>
