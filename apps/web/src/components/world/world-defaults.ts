@@ -1,5 +1,5 @@
-import { DEFAULT_GENERATION } from '@infinite-world/api-contract';
 import type { StylePreset, WorldConfig } from '@infinite-world/api-contract';
+import { DEFAULT_GENERATION } from '@infinite-world/api-contract';
 
 export function stylePresetChanges(preset: StylePreset) {
   switch (preset) {
@@ -16,6 +16,7 @@ export function stylePresetChanges(preset: StylePreset) {
 
 export const defaultWorldConfig: WorldConfig = {
   interactionType: 'text',
+  optionLanguage: 'en',
   name: '',
   prompt: '',
   generation: { ...DEFAULT_GENERATION },

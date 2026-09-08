@@ -11,8 +11,8 @@ import {
   XIcon as Remove,
   WarningCircleIcon as Warning,
 } from '@phosphor-icons/react';
-import { Film, type LucideIcon, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { Bot, Film, type LucideIcon, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/use-translation';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../ui/input-group';
 import { Loading } from '../ui/loading';
@@ -20,8 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { errorToast, successToast } from '../ui/toast';
 import { ProviderModelDetail } from './provider-model-detail';
 
-type ProviderKey = 'google' | 'fal';
-type ProviderKeyField = 'googleApiKey' | 'falApiKey';
+type ProviderKey = 'google' | 'openai' | 'fal';
+type ProviderKeyField = 'googleApiKey' | 'openaiApiKey' | 'falApiKey';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface ModelSettingsFormProps {
@@ -52,21 +52,29 @@ export function ModelSettingsForm({
   onSave,
 }: ModelSettingsFormProps) {
   const { t } = useTranslation('settings');
-  const [drafts, setDrafts] = useState<Record<ProviderKey, string>>({ google: '', fal: '' });
+  const [drafts, setDrafts] = useState<Record<ProviderKey, string>>({
+    google: '',
+    openai: '',
+    fal: '',
+  });
   const [savedValues, setSavedValues] = useState<Record<ProviderKey, string>>({
     google: '',
+    openai: '',
     fal: '',
   });
   const [revealed, setRevealed] = useState<Record<ProviderKey, boolean>>({
     google: false,
+    openai: false,
     fal: false,
   });
   const [statuses, setStatuses] = useState<Record<ProviderKey, SaveStatus>>({
     google: 'idle',
+    openai: 'idle',
     fal: 'idle',
   });
   const [errors, setErrors] = useState<Record<ProviderKey, string | null>>({
     google: null,
+    openai: null,
     fal: null,
   });
   const [selectedProvider, setSelectedProvider] = useState<ProviderKey | null>(null);
@@ -88,6 +96,14 @@ export function ModelSettingsForm({
     providerUrl: 'https://fal.ai/dashboard/keys',
     providerHost: 'fal.ai',
   };
+  const openaiProvider: ProviderDefinition = {
+    key: 'openai',
+    keyField: 'openaiApiKey',
+    label: t('openaiCompatibleProvider'),
+    icon: Bot,
+    providerUrl: 'https://platform.openai.com/api-keys',
+    providerHost: 'platform.openai.com',
+  };
   const googleVisionProvider: ProviderModelGroup = {
     ...googleProvider,
     models: modelsForCapability('vision').filter((model) => model.provider === 'google'),
@@ -95,6 +111,10 @@ export function ModelSettingsForm({
   const falVisionProvider: ProviderModelGroup = {
     ...falProvider,
     models: modelsForCapability('vision').filter((model) => model.provider === 'fal'),
+  };
+  const openaiVisionProvider: ProviderModelGroup = {
+    ...openaiProvider,
+    models: modelsForCapability('vision').filter((model) => model.provider === 'openai'),
   };
   const falVideoProvider: ProviderModelGroup = {
     ...falProvider,
@@ -197,6 +217,16 @@ export function ModelSettingsForm({
             onBack={() => setSelectedProvider(null)}
             onConnect={() => setSelectedProvider(null)}
           />
+        ) : selectedProvider === 'openai' ? (
+          <ProviderModelDetail
+            providerLabel={openaiVisionProvider.label}
+            providerIcon={openaiVisionProvider.icon}
+            providerUrl={openaiVisionProvider.providerUrl}
+            providerHost={openaiVisionProvider.providerHost}
+            models={openaiVisionProvider.models}
+            onBack={() => setSelectedProvider(null)}
+            onConnect={() => setSelectedProvider(null)}
+          />
         ) : (
           <div className="flex flex-col gap-4">
             <p className="px-0.5 text-xs text-pretty text-muted-foreground">
@@ -217,6 +247,23 @@ export function ModelSettingsForm({
                 onToggleReveal={() => toggleProviderKey(googleVisionProvider)}
                 onOpenModels={() => setSelectedProvider('google')}
                 modelCountLabel={modelCountLabel(t, googleVisionProvider.models.length)}
+              />
+              <ProviderRow
+                provider={openaiVisionProvider}
+                configured={settings.openaiApiKeyConfigured}
+                value={drafts.openai}
+                revealed={revealed.openai}
+                status={statuses.openai}
+                error={errors.openai}
+                disabled={disabled}
+                onChange={(value) => changeProviderKey(openaiVisionProvider, value)}
+                onClear={() => clearProviderKey(openaiVisionProvider)}
+                onBlur={(value) => handleProviderBlur(openaiVisionProvider, value)}
+                onToggleReveal={() => toggleProviderKey(openaiVisionProvider)}
+                onOpenModels={() => setSelectedProvider('openai')}
+                modelCountLabel={modelCountLabel(t, openaiVisionProvider.models.length)}
+                baseUrl={settings.openaiBaseUrl}
+                onSaveBaseUrl={(value) => onSave({ openaiBaseUrl: value })}
               />
               <ProviderRow
                 provider={falVisionProvider}
@@ -286,6 +333,8 @@ function ProviderRow({
   onToggleReveal,
   onOpenModels,
   modelCountLabel,
+  baseUrl,
+  onSaveBaseUrl,
 }: {
   provider: ProviderModelGroup;
   configured: boolean;
@@ -300,6 +349,8 @@ function ProviderRow({
   onToggleReveal: () => void;
   onOpenModels: () => void;
   modelCountLabel: string;
+  baseUrl?: string;
+  onSaveBaseUrl?: (value: string) => Promise<void>;
 }) {
   const { t } = useTranslation('settings');
   const ProviderIcon = provider.icon;
@@ -334,22 +385,99 @@ function ProviderRow({
           </button>
         </div>
       </div>
-      <SecretInput
-        value={value}
-        revealed={revealed}
-        configured={configured}
-        status={status}
-        error={error}
-        onChange={onChange}
-        onClear={onClear}
-        onBlur={onBlur}
-        onToggleReveal={onToggleReveal}
-        placeholder={t('pasteProviderKey', { provider: provider.label })}
-        clearLabel={t('clearProviderApiKey', { provider: provider.label })}
-        showLabel={t('showProviderApiKey', { provider: provider.label })}
-        hideLabel={t('hideProviderApiKey', { provider: provider.label })}
-        disabled={disabled}
-      />
+      <div className="min-w-0">
+        <SecretInput
+          value={value}
+          revealed={revealed}
+          configured={configured}
+          status={status}
+          error={error}
+          onChange={onChange}
+          onClear={onClear}
+          onBlur={onBlur}
+          onToggleReveal={onToggleReveal}
+          placeholder={t('pasteProviderKey', { provider: provider.label })}
+          clearLabel={t('clearProviderApiKey', { provider: provider.label })}
+          showLabel={t('showProviderApiKey', { provider: provider.label })}
+          hideLabel={t('hideProviderApiKey', { provider: provider.label })}
+          disabled={disabled}
+        />
+        {baseUrl !== undefined && onSaveBaseUrl ? (
+          <BaseUrlInput
+            value={baseUrl}
+            disabled={disabled}
+            onSave={onSaveBaseUrl}
+            label={t('openaiBaseUrl')}
+            placeholder={t('openaiBaseUrlPlaceholder')}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function BaseUrlInput({
+  value,
+  disabled,
+  onSave,
+  label,
+  placeholder,
+}: {
+  value: string;
+  disabled: boolean;
+  onSave: (value: string) => Promise<void>;
+  label: string;
+  placeholder: string;
+}) {
+  const { t } = useTranslation('settings');
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => setDraft(value), [value]);
+  const save = async () => {
+    const next = draft.trim() || 'https://api.openai.com/v1';
+    if (next === value || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(next);
+      setDraft(next);
+      successToast(t('openaiBaseUrlSaved'), { id: 'openai-base-url' });
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : t('saveFailed');
+      setError(message);
+      errorToast(t('saveFailed'), { id: 'openai-base-url', description: message });
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="mt-2 min-w-0 space-y-1.5">
+      <label className="block text-xs text-muted-foreground" htmlFor="openai-base-url">
+        {label}
+      </label>
+      <InputGroup data-disabled={disabled || undefined}>
+        <InputGroupInput
+          id="openai-base-url"
+          type="url"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => void save()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+          placeholder={placeholder}
+          disabled={disabled || saving}
+          aria-invalid={Boolean(error)}
+        />
+        <InputGroupAddon align="inline-end">
+          {saving ? <Loading className="size-3.5" /> : null}
+        </InputGroupAddon>
+      </InputGroup>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }

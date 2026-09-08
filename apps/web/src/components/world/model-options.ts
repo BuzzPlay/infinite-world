@@ -36,10 +36,12 @@ export function generationModelOptionsFor(falApiKeyConfigured: boolean) {
 
 export function visionModelOptionsFor(
   googleApiKeyConfigured: boolean,
+  openaiApiKeyConfigured: boolean,
   falApiKeyConfigured: boolean,
 ) {
   return modelOptionsFor('vision', {
     google: googleApiKeyConfigured,
+    openai: openaiApiKeyConfigured,
     fal: falApiKeyConfigured,
   });
 }

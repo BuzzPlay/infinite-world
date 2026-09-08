@@ -4,6 +4,7 @@ export interface ProjectRecord {
   id: string;
   worldId: string;
   interactionType: WorldConfig['interactionType'];
+  optionLanguage?: WorldConfig['optionLanguage'];
   name: string;
   prompt: string;
   generation: WorldConfig['generation'];
@@ -15,6 +16,7 @@ export function projectFromWorld(
   world: {
     id: string;
     interactionType: WorldConfig['interactionType'];
+    optionLanguage?: WorldConfig['optionLanguage'];
     name: string;
     prompt: string;
     generation: WorldConfig['generation'];
@@ -26,6 +28,7 @@ export function projectFromWorld(
     id: existing?.id ?? world.id,
     worldId: world.id,
     interactionType: world.interactionType,
+    optionLanguage: world.optionLanguage ?? 'en',
     name: world.name,
     prompt: world.prompt,
     generation: world.generation,

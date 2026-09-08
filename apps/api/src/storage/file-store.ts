@@ -65,6 +65,8 @@ export function defaultProviderState(): ProviderState {
   return {
     falApiKey: null,
     googleApiKey: null,
+    openaiApiKey: null,
+    openaiBaseUrl: 'https://api.openai.com/v1',
     twitchStreamKey: null,
     twitchOauthToken: null,
     defaultStylePreset: 'cohesive',

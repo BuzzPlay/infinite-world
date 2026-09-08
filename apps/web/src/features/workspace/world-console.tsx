@@ -37,6 +37,7 @@ import { defaultWorldConfig } from '@/components/world/world-defaults';
 import { useTranslation } from '@/i18n/use-translation';
 import {
   activateScene,
+  cacheSceneMedia,
   chooseSceneOption,
   createWorld,
   deleteRunVersion,
@@ -87,6 +88,8 @@ function WorldConsole() {
   const [providerSettings, setProviderSettings] = useState<ProviderSettings>({
     falApiKeyConfigured: false,
     googleApiKeyConfigured: false,
+    openaiApiKeyConfigured: false,
+    openaiBaseUrl: 'https://api.openai.com/v1',
     defaultStylePreset: 'cohesive',
     twitchChannel: '',
     twitchUsername: '',
@@ -112,6 +115,7 @@ function WorldConsole() {
   const runRevisionRef = useRef(-1);
   const worldIdRef = useRef<string | null>(null);
   const choiceInFlightRef = useRef(false);
+  const mediaCacheAttemptedRef = useRef(new Set<string>());
   const previewRef = useRef<HTMLDivElement>(null);
 
   const syncRunGeneration = useCallback((nextRun: RunSnapshot) => {
@@ -278,6 +282,25 @@ function WorldConsole() {
   const currentRunState = run?.state ?? null;
 
   useEffect(() => {
+    if (!world || !run) return;
+    const scene = run.scenes.find(
+      (candidate) =>
+        candidate.mediaType === 'video' &&
+        candidate.previewUrl &&
+        !candidate.previewUrl.includes('/api/media/') &&
+        !mediaCacheAttemptedRef.current.has(candidate.id),
+    );
+    if (!scene) return;
+
+    mediaCacheAttemptedRef.current.add(scene.id);
+    void cacheSceneMedia(world.id, scene.id)
+      .then((response) => {
+        if (worldIdRef.current === world.id) replaceRun(response.run);
+      })
+      .catch(() => undefined);
+  }, [replaceRun, run, world]);
+
+  useEffect(() => {
     if (!currentWorldId || !isLiveRunState(currentRunState)) return;
     const refresh = () => {
       void getCurrentWorld()
@@ -358,10 +381,12 @@ function WorldConsole() {
         if (
           !isModelConfigured('video', draft.generation.model, {
             googleApiKeyConfigured: providerSettings.googleApiKeyConfigured,
+            openaiApiKeyConfigured: providerSettings.openaiApiKeyConfigured,
             falApiKeyConfigured: providerSettings.falApiKeyConfigured,
           }) ||
           !isModelConfigured('vision', draft.generation.visionModel, {
             googleApiKeyConfigured: providerSettings.googleApiKeyConfigured,
+            openaiApiKeyConfigured: providerSettings.openaiApiKeyConfigured,
             falApiKeyConfigured: providerSettings.falApiKeyConfigured,
           })
         ) {
@@ -435,6 +460,7 @@ function WorldConsole() {
       const source = currentProject ? draft : project;
       const response = await updateWorld(project.worldId, {
         interactionType: source.interactionType,
+        optionLanguage: source.optionLanguage ?? 'en',
         name,
         prompt: source.prompt,
         generation: source.generation,
@@ -727,6 +753,7 @@ function WorldConsole() {
               loading={loading}
               visionModelOptions={visionModelOptionsFor(
                 providerSettings.googleApiKeyConfigured,
+                providerSettings.openaiApiKeyConfigured,
                 providerSettings.falApiKeyConfigured,
               )}
               videoModelOptions={generationModelOptionsFor(providerSettings.falApiKeyConfigured)}
@@ -829,6 +856,7 @@ function WorldConsole() {
 function worldToConfig(world: WorldSnapshot): WorldConfig {
   return {
     interactionType: world.interactionType,
+    optionLanguage: world.optionLanguage ?? 'en',
     name: world.name,
     prompt: world.prompt,
     generation: world.generation,

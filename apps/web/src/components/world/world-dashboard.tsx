@@ -200,9 +200,12 @@ export function WorldDashboard({
       <TabsContent value="customize" className="absolute inset-0 m-0">
         <CustomizePanel
           name={draft.name}
+          optionLanguage={draft.optionLanguage ?? 'en'}
           icon={projectIcon}
           busy={busy === 'save' || busy === 'delete-project'}
+          active={isActive}
           onSaveName={(name) => onSave({ ...draft, name })}
+          onOptionLanguageChange={(optionLanguage) => onSave({ ...draft, optionLanguage })}
           onIconChange={onProjectIconChange}
           onRequestDelete={onRequestDeleteProject}
         />

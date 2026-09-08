@@ -12,11 +12,13 @@ import type {
 export interface ProviderSecrets {
   falApiKey: string | null;
   googleApiKey: string | null;
+  openaiApiKey: string | null;
   twitchStreamKey: string | null;
   twitchOauthToken: string | null;
 }
 
 export interface ProviderState extends ProviderSecrets {
+  openaiBaseUrl: string;
   defaultStylePreset: ProviderSettings['defaultStylePreset'];
   twitchChannel: string;
   twitchUsername: string;

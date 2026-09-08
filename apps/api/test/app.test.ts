@@ -50,6 +50,27 @@ describe('local API', () => {
     assert.equal(providerUpdate.json().falApiKeyConfigured, true);
     assert.equal('falApiKey' in providerUpdate.json(), false);
 
+    const openaiProviderUpdate = await app.inject({
+      method: 'PUT',
+      url: '/api/settings/providers',
+      payload: {
+        openaiApiKey: 'test-openai-key',
+        openaiBaseUrl: 'http://localhost:11434/v1/',
+      },
+    });
+    assert.equal(openaiProviderUpdate.statusCode, 200);
+    assert.equal(openaiProviderUpdate.json().openaiApiKeyConfigured, true);
+    assert.equal(openaiProviderUpdate.json().openaiBaseUrl, 'http://localhost:11434/v1');
+    assert.equal('openaiApiKey' in openaiProviderUpdate.json(), false);
+
+    const invalidOpenaiBaseUrl = await app.inject({
+      method: 'PUT',
+      url: '/api/settings/providers',
+      payload: { openaiBaseUrl: 'http://proxy.example.test/v1' },
+    });
+    assert.equal(invalidOpenaiBaseUrl.statusCode, 400);
+    assert.equal(invalidOpenaiBaseUrl.json().error.code, 'invalid_openai_base_url');
+
     const unsupportedInteraction = await app.inject({
       method: 'POST',
       url: '/api/worlds',
@@ -64,6 +85,22 @@ describe('local API', () => {
     });
     assert.equal(unsupportedInteraction.statusCode, 400);
     assert.equal(unsupportedInteraction.json().error.code, 'invalid_interaction_type');
+
+    const unsupportedOptionLanguage = await app.inject({
+      method: 'POST',
+      url: '/api/worlds',
+      payload: {
+        world: {
+          interactionType: 'text',
+          optionLanguage: 'unsupported',
+          name: 'Unsupported language world',
+          prompt: 'An unsupported option language',
+          generation: structuredClone(DEFAULT_GENERATION),
+        },
+      },
+    });
+    assert.equal(unsupportedOptionLanguage.statusCode, 400);
+    assert.equal(unsupportedOptionLanguage.json().error.code, 'invalid_option_language');
 
     const first = await createWorld(app, 'First world');
     const second = await createWorld(app, 'Second world');
@@ -368,6 +405,7 @@ async function createWorld(app: FastifyInstance, name: string) {
   const body = response.json();
   assert.equal(body.world.name, name);
   assert.equal(body.world.interactionType, 'text');
+  assert.equal(body.world.optionLanguage, 'en');
   assert.equal(body.run.state, 'created');
   return body;
 }
