@@ -1,12 +1,11 @@
 import type {
   GenerationSettings,
   InteractionType,
-  InteractiveRegionSnapshot,
   RunState,
   SceneSnapshot,
 } from '@infinite-world/api-contract';
 import type { ModelCapability } from '@infinite-world/api-contract/model-catalog';
-import { History, Maximize2, Play, Square, Waypoints } from 'lucide-react';
+import { History, Maximize2, Play, Square, Timer, Waypoints } from 'lucide-react';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -14,6 +13,7 @@ import { useTranslation } from '../../i18n/use-translation';
 import { Button } from '../ui/button';
 import { BranchChoicePanel } from './branch-choice-panel';
 import { InteractionInputPanel } from './interaction-input-panel';
+import { InteractiveRegionOverlay } from './interactive-region-overlay';
 import type { GenerationModelOption } from './model-options';
 import { RecentVersionsPanel } from './recent-versions-panel';
 import { RunModelControls } from './run-model-controls';
@@ -115,12 +115,20 @@ export function PreviewCanvas({
   const visibleOptions = imageMode
     ? (currentScene?.options.filter((option) => option.regionId === selectedRegionId) ?? [])
     : (currentScene?.options ?? []);
+  const hasImageAutoRegions = imageMode
+    ? regions.some((region) =>
+        (currentScene?.options ?? []).some((option) => option.regionId === region.id),
+      )
+    : false;
   const imageInteractionReady =
     !imageMode || displayedMediaScene?.mediaType !== 'video' || videoEnded;
   const showBranchChoices = imageMode
     ? imageInteractionReady && hasMedia && (selectedRegion !== null || regions.length === 0)
     : interactionType !== 'voice' && hasMedia && currentScene !== null;
   const hasBranchChoices = Boolean(visibleOptions.length);
+  const canAutoAdvance = imageMode
+    ? imageInteractionReady && (selectedRegionId === null ? hasImageAutoRegions : hasBranchChoices)
+    : showBranchChoices && hasBranchChoices;
   const disableSceneNavigation = busy !== null || showGenerating || generatingChoice;
   const clearAutoCountdown = useCallback(() => {
     autoCountdownRef.current = null;
@@ -155,13 +163,9 @@ export function PreviewCanvas({
       disableAuto();
       return;
     }
-    if (!hasBranchChoices) {
-      disableAuto();
-      return;
-    }
     if (
       !autoEnabled ||
-      !showBranchChoices ||
+      !canAutoAdvance ||
       generatingChoice ||
       busy !== null ||
       currentSceneId === null
@@ -185,7 +189,23 @@ export function PreviewCanvas({
       autoCountdownRef.current = null;
       setAutoCountdown(null);
       const scene = currentSceneRef.current;
-      const options = scene?.options ?? [];
+      if (imageMode && selectedRegionId === null) {
+        const regionsWithOptions = (scene?.interactiveRegions ?? []).filter((region) =>
+          (scene?.options ?? []).some((option) => option.regionId === region.id),
+        );
+        const region =
+          regionsWithOptions[Math.floor(Math.random() * regionsWithOptions.length)] ?? null;
+        if (!region) {
+          disableAuto();
+          return;
+        }
+        setSelectedRegionId(region.id);
+        return;
+      }
+
+      const options = imageMode
+        ? (scene?.options.filter((option) => option.regionId === selectedRegionId) ?? [])
+        : (scene?.options ?? []);
       const option = options[Math.floor(Math.random() * options.length)];
       if (scene && option) {
         autoAdvanceRef.current = true;
@@ -197,12 +217,13 @@ export function PreviewCanvas({
   }, [
     autoEnabled,
     busy,
+    canAutoAdvance,
     clearAutoCountdown,
     currentSceneId,
     disableAuto,
     generatingChoice,
-    hasBranchChoices,
-    showBranchChoices,
+    imageMode,
+    selectedRegionId,
     state,
   ]);
 
@@ -219,6 +240,11 @@ export function PreviewCanvas({
     onOptionSelect(sceneId, optionId);
   };
 
+  const selectRegion = (regionId: string) => {
+    disableAuto();
+    setSelectedRegionId(regionId);
+  };
+
   return (
     <div
       className={cn(
@@ -232,7 +258,7 @@ export function PreviewCanvas({
           <PreviewVideo
             scene={displayedMediaScene}
             sceneLabel={t('dashboard.scene', { sequence: displayedMediaScene.sequence })}
-            loop={!imageMode}
+            loop={false}
             onEnded={() => setVideoEnded(true)}
           />
         ) : (
@@ -255,7 +281,7 @@ export function PreviewCanvas({
           regions={regions}
           selectedRegionId={selectedRegionId}
           disabled={busy !== null || generatingChoice}
-          onSelect={setSelectedRegionId}
+          onSelect={selectRegion}
         />
       ) : null}
 
@@ -375,6 +401,36 @@ export function PreviewCanvas({
         onInteraction={disableAuto}
       />
 
+      {imageMode &&
+      imageInteractionReady &&
+      hasMedia &&
+      selectedRegion === null &&
+      regions.length > 0 ? (
+        <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
+          <Button
+            type="button"
+            variant={autoEnabled ? 'secondary' : 'background'}
+            size="sm"
+            className="pointer-events-auto h-8 gap-1.5 border border-border px-3 text-xs shadow-lg"
+            disabled={busy !== null || generatingChoice || !hasImageAutoRegions}
+            onClick={toggleAuto}
+            title={
+              autoEnabled ? t('dashboard.disableAutoAdvance') : t('dashboard.enableAutoAdvance')
+            }
+            aria-label={
+              autoEnabled ? t('dashboard.disableAutoAdvance') : t('dashboard.enableAutoAdvance')
+            }
+            aria-pressed={autoEnabled}
+          >
+            <Timer size={14} aria-hidden="true" />
+            <span>{t('dashboard.auto')}</span>
+            {autoEnabled && autoCountdown !== null ? (
+              <span className="tabular-nums text-muted-foreground">{autoCountdown}s</span>
+            ) : null}
+          </Button>
+        </div>
+      ) : null}
+
       <div
         className={cn(
           cn(
@@ -392,7 +448,7 @@ export function PreviewCanvas({
           regenerating={busy === 'regenerate-options'}
           autoEnabled={autoEnabled}
           autoCountdown={autoCountdown}
-          onAutoToggle={imageMode ? undefined : toggleAuto}
+          onAutoToggle={toggleAuto}
           onSelect={(option) => currentScene && selectOption(currentScene.id, option.id)}
           onRegenerate={
             currentScene && onRegenerateOptions
@@ -496,52 +552,6 @@ function PreviewVideo({
           aria-label={sceneLabel}
         />
       ) : null}
-    </div>
-  );
-}
-
-function InteractiveRegionOverlay({
-  regions,
-  selectedRegionId,
-  disabled,
-  onSelect,
-}: {
-  regions: InteractiveRegionSnapshot[];
-  selectedRegionId: string | null;
-  disabled: boolean;
-  onSelect: (regionId: string) => void;
-}) {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-10">
-      {regions.map((region) => (
-        <button
-          key={region.id}
-          type="button"
-          className={cn(
-            'group pointer-events-auto absolute rounded-md border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/80',
-          )}
-          style={{
-            left: `${region.x * 100}%`,
-            top: `${region.y * 100}%`,
-            width: `${region.width * 100}%`,
-            height: `${region.height * 100}%`,
-          }}
-          disabled={disabled}
-          onClick={() => onSelect(region.id)}
-          aria-label={region.label}
-          title={region.label}
-        >
-          <span
-            className={cn(
-              'absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-blue transition-[box-shadow,transform] group-hover:scale-125',
-              selectedRegionId === region.id
-                ? 'size-4 shadow-[0_0_0_5px_rgba(59,130,246,0.3),0_0_18px_rgba(59,130,246,0.8)]'
-                : 'size-3 shadow-[0_0_0_3px_rgba(59,130,246,0.2),0_0_12px_rgba(59,130,246,0.65)]',
-            )}
-            aria-hidden="true"
-          />
-        </button>
-      ))}
     </div>
   );
 }

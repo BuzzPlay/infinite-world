@@ -191,7 +191,11 @@ export function WorldDashboard({
         />
       </TabsContent>
       <TabsContent value="replay" className="absolute inset-0 m-0">
-        <ReplayPanel scenes={availableScenes} initialSceneId={currentScene?.id ?? null} />
+        <ReplayPanel
+          scenes={availableScenes}
+          initialSceneId={currentScene?.id ?? null}
+          interactionType={draft.interactionType}
+        />
       </TabsContent>
       <TabsContent value="customize" className="absolute inset-0 m-0">
         <CustomizePanel
