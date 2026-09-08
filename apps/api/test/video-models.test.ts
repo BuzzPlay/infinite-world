@@ -9,6 +9,9 @@ import {
   MINIMAX_H3_TEXT_ENDPOINT,
   MINIMAX_H3_VIDEO_MODEL,
   MODEL_CATALOG,
+  SEEDANCE_25_IMAGE_ENDPOINT,
+  SEEDANCE_25_TEXT_ENDPOINT,
+  SEEDANCE_25_VIDEO_MODEL,
   videoEndpointFor,
 } from '@infinite-world/api-contract/model-catalog';
 
@@ -16,6 +19,7 @@ import { applyGenerationInput } from '../src/domain/generation.js';
 import { newRun } from '../src/domain/run.js';
 import { ltx23FastInput } from '../src/providers/ai/video-models/ltx-2.3-fast.js';
 import { minimaxH3Input } from '../src/providers/ai/video-models/minimax-h3.js';
+import { seedance25Input } from '../src/providers/ai/video-models/seedance-2.5.js';
 import type { GenerationInput } from '../src/types.js';
 
 describe('video model adapters', () => {
@@ -35,6 +39,37 @@ describe('video model adapters', () => {
       videoEndpointFor(MINIMAX_H3_VIDEO_MODEL, 'image-to-video'),
       MINIMAX_H3_IMAGE_ENDPOINT,
     );
+  });
+
+  test('maps Seedance 2.5 text and image endpoints', () => {
+    assert.equal(
+      videoEndpointFor(SEEDANCE_25_VIDEO_MODEL, 'text-to-video'),
+      SEEDANCE_25_TEXT_ENDPOINT,
+    );
+    assert.equal(
+      videoEndpointFor(SEEDANCE_25_VIDEO_MODEL, 'image-to-video'),
+      SEEDANCE_25_IMAGE_ENDPOINT,
+    );
+  });
+
+  test('builds Seedance 2.5 requests with the optional continuity frame', () => {
+    const input = generationInput({
+      model: SEEDANCE_25_VIDEO_MODEL,
+      durationSeconds: 5,
+      resolution: '720p',
+      aspectRatio: 'auto',
+      seed: 42,
+    });
+
+    assert.deepEqual(seedance25Input(input, 'A lantern flickers', null), {
+      prompt: 'A lantern flickers',
+      duration: '5',
+    });
+    assert.deepEqual(seedance25Input(input, 'A lantern flickers', 'https://example.com/a.jpg'), {
+      prompt: 'A lantern flickers',
+      duration: '5',
+      image_url: 'https://example.com/a.jpg',
+    });
   });
 
   test('builds a MiniMax H3 text-to-video request without LTX-only fields', () => {

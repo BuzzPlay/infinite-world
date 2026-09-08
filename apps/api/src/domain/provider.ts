@@ -6,6 +6,8 @@ export function providerResponse(settings: ProviderState): ProviderSettings {
   return {
     falApiKeyConfigured: Boolean(settings.falApiKey),
     googleApiKeyConfigured: Boolean(settings.googleApiKey),
+    openaiApiKeyConfigured: Boolean(settings.openaiApiKey),
+    openaiBaseUrl: settings.openaiBaseUrl,
     defaultStylePreset: settings.defaultStylePreset,
     twitchChannel: settings.twitchChannel,
     twitchUsername: settings.twitchUsername,

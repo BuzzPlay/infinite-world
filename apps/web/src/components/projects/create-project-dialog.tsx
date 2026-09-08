@@ -1,5 +1,3 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Plus } from 'lucide-react';
 import type {
   GenerationSettings,
   ProviderSettings,
@@ -9,7 +7,9 @@ import {
   DEFAULT_VIDEO_MODEL,
   defaultVisionModelFor,
 } from '@infinite-world/api-contract/model-catalog';
-
+import { Plus } from 'lucide-react';
+import { type FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from '../../i18n/use-translation';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -19,10 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { WorldSetupForm } from '../world/world-setup-form';
 import { videoModelChanges } from '../world/model-options';
 import { defaultWorldConfig, stylePresetChanges } from '../world/world-defaults';
-import { useTranslation } from '../../i18n/use-translation';
+import { WorldSetupForm } from '../world/world-setup-form';
 
 export interface CreateProjectInput {
   config: WorldConfig;
@@ -53,6 +52,7 @@ export function CreateProjectDialog({
         : 'none';
       const defaultVisionModel = defaultVisionModelFor(
         providerSettings.googleApiKeyConfigured,
+        providerSettings.openaiApiKeyConfigured,
         providerSettings.falApiKeyConfigured,
       );
       setConfig({
@@ -71,6 +71,7 @@ export function CreateProjectDialog({
     providerSettings.defaultStylePreset,
     providerSettings.falApiKeyConfigured,
     providerSettings.googleApiKeyConfigured,
+    providerSettings.openaiApiKeyConfigured,
   ]);
 
   const updateGeneration = (changes: Partial<GenerationSettings>) => {

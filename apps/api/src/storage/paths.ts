@@ -6,6 +6,14 @@ export function rootStatePath(dataDir: string) {
   return join(dataDir, 'state.json');
 }
 
+export function mediaDirectory(dataDir: string) {
+  return join(dataDir, 'media');
+}
+
+export function mediaAssetPath(dataDir: string, mediaId: string) {
+  return join(mediaDirectory(dataDir), `${mediaId}.mp4`);
+}
+
 export function projectDirectory(dataDir: string, projectId: string) {
   return join(dataDir, 'projects', encodeURIComponent(projectId));
 }

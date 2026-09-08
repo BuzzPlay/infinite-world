@@ -29,6 +29,12 @@ export class RuntimeState {
       ...(savedProvider.googleApiKey !== undefined
         ? { googleApiKey: savedProvider.googleApiKey }
         : {}),
+      ...(savedProvider.openaiApiKey !== undefined
+        ? { openaiApiKey: savedProvider.openaiApiKey }
+        : {}),
+      ...(savedProvider.openaiBaseUrl !== undefined
+        ? { openaiBaseUrl: savedProvider.openaiBaseUrl }
+        : {}),
       ...(savedProvider.twitchStreamKey !== undefined
         ? { twitchStreamKey: savedProvider.twitchStreamKey }
         : {}),

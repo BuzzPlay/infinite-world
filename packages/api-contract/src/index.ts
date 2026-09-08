@@ -6,6 +6,9 @@ export type StylePreset = 'cohesive' | 'chaotic' | 'nightmare' | 'custom';
 
 export type InteractionType = 'text' | 'voice' | 'image';
 
+/** Language used for AI-generated player choices in this project. */
+export type OptionLanguage = 'en' | 'zh';
+
 export interface CharacterReference {
   image: string;
   strength: number;
@@ -21,7 +24,7 @@ export interface GenerationSettings {
   height: number;
   durationSeconds: number;
   frameRate: number;
-  resolution: '480P' | '768P' | '2K' | '4K' | '1080p' | '1440p' | '2160p' | null;
+  resolution: '480P' | '720p' | '768P' | '2K' | '4K' | '1080p' | '1440p' | '2160p' | null;
   aspectRatio: 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | null;
   guidanceScale: number;
   seed: number | null;
@@ -41,6 +44,7 @@ export interface GenerationSettings {
 
 export interface WorldConfig {
   interactionType: InteractionType;
+  optionLanguage?: OptionLanguage;
   name: string;
   prompt: string;
   generation: GenerationSettings;
@@ -190,6 +194,8 @@ export interface CreateWorldRequest {
 export interface ProviderSettings {
   falApiKeyConfigured: boolean;
   googleApiKeyConfigured: boolean;
+  openaiApiKeyConfigured: boolean;
+  openaiBaseUrl: string;
   defaultStylePreset: StylePreset;
   twitchChannel: string;
   twitchUsername: string;
@@ -201,6 +207,8 @@ export interface ProviderSettings {
 export interface UpdateProviderSettingsRequest {
   falApiKey?: string;
   googleApiKey?: string;
+  openaiApiKey?: string;
+  openaiBaseUrl?: string;
   defaultStylePreset: StylePreset;
   twitchChannel: string;
   twitchUsername: string;

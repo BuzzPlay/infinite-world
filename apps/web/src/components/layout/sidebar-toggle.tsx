@@ -1,10 +1,10 @@
 import { SidebarSimpleIcon as PanelLeft } from '@phosphor-icons/react';
 
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../../i18n/use-translation';
 import { Button } from '../ui/button';
 import Hint from '../ui/hint';
 import { useSidebar } from '../ui/sidebar';
-import { useTranslation } from '../../i18n/use-translation';
 
 export function SidebarToggle({
   className,
@@ -34,7 +34,8 @@ export function SidebarToggle({
         onPointerLeave={peekLeave}
         className={cn(
           'hover:bg-sidebar-accent hover:text-sidebar-foreground shrink-0 cursor-pointer items-center justify-center rounded-md transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.96]',
-          placement === 'floating' && 'absolute top-2 left-2 z-20',
+          placement === 'floating' &&
+            'absolute left-2 top-2 z-20 border border-border/80 bg-background/90 shadow-sm backdrop-blur-md hover:bg-accent',
           className,
         )}
       >

@@ -62,6 +62,12 @@ export function registerRunRoutes(app: FastifyInstance, runs: RunService, manage
       run: publicRun(manager.activateScene(request.params.worldId, request.params.sceneId)),
     }),
   );
+  app.post<{ Params: SceneParams }>(
+    '/api/worlds/:worldId/run/scenes/:sceneId/media/cache',
+    async (request) => ({
+      run: publicRun(await runs.cacheSceneMedia(request.params.worldId, request.params.sceneId)),
+    }),
+  );
   app.patch<{ Params: RunParams; Body: RunConfigInput }>(
     '/api/worlds/:worldId/run/config',
     async (request) => ({

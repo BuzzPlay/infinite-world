@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import type { GenerationInput, ProviderState } from '../../types.js';
 import { downloadModelImage, type ModelImage } from './model-image.js';
+import { providerErrorMessage } from './provider-error.js';
 import { imageForScene } from './scene-input.js';
 import { resolveVisionModel } from './vision-model.js';
 
@@ -25,29 +26,35 @@ export class PromptProvider {
   ): Promise<PromptResult> {
     const model = resolveVisionModel(input.generation.visionModel, settings);
     if (!model) throw new Error('the selected vision model is not configured');
-    const sceneImageUrl = imageForScene(input);
-    const sceneImage = sceneImageUrl
-      ? await downloadModelImage(new URL(sceneImageUrl), { signal })
-      : null;
+    try {
+      const sceneImageUrl = imageForScene(input);
+      const sceneImage = sceneImageUrl
+        ? await downloadModelImage(new URL(sceneImageUrl), { signal })
+        : null;
 
-    const result = await generateObject({
-      model,
-      schema: sceneSchema,
-      schemaName: 'scene_progression',
-      system: systemPrompt(input.generation.mode, input.generation.stylePreset),
-      ...(sceneImage
-        ? { messages: imageMessages(requestText(input), sceneImage) }
-        : { prompt: requestText(input) }),
-      maxOutputTokens: 400,
-      maxRetries: 1,
-      abortSignal: signal,
-    });
-    const value = result.object;
-    return {
-      prompt: value.prompt.trim(),
-      contextSummary: value.context_summary?.trim() || 'The story advances into a new scene.',
-      selectedComment: null,
-    };
+      const result = await generateObject({
+        model,
+        schema: sceneSchema,
+        schemaName: 'scene_progression',
+        system: systemPrompt(input.generation.mode, input.generation.stylePreset),
+        ...(sceneImage
+          ? { messages: imageMessages(requestText(input), sceneImage) }
+          : { prompt: requestText(input) }),
+        maxOutputTokens: 400,
+        maxRetries: 1,
+        abortSignal: signal,
+      });
+      const value = result.object;
+      return {
+        prompt: value.prompt.trim(),
+        contextSummary: value.context_summary?.trim() || 'The story advances into a new scene.',
+        selectedComment: null,
+      };
+    } catch (error) {
+      throw new Error(providerErrorMessage('Vision prompt generation failed', error), {
+        cause: error,
+      });
+    }
   }
 }
 
@@ -68,7 +75,7 @@ function systemPrompt(mode: string, style: string) {
     style === 'nightmare' || style === 'chaotic'
       ? 'Introduce one controlled unsettling or surprising change while preserving visual continuity.'
       : 'Keep the same characters, place, and visual language while advancing the action naturally.';
-  return `You direct an ongoing generative video world. ${continuity} The mode is ${mode}. Describe one visible next action in present tense under 120 words. Return the requested structured object only.`;
+  return `You direct an ongoing generative video world. ${continuity} The mode is ${mode}. Describe one visible next action in present tense under 120 words. Reply with JSON only: {"prompt":"...","context_summary":"..."}. "prompt" is required. "context_summary" is optional and briefly records the resulting visual state. Do not use Markdown or add any text outside the JSON object.`;
 }
 
 function requestText(input: GenerationInput) {

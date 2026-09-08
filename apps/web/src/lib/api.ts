@@ -140,6 +140,12 @@ export function activateScene(worldId: string, sceneId: string) {
   });
 }
 
+export function cacheSceneMedia(worldId: string, sceneId: string) {
+  return request<RunResponse>(`/api/worlds/${worldId}/run/scenes/${sceneId}/media/cache`, {
+    method: 'POST',
+  });
+}
+
 export function deleteRunVersion(worldId: string, versionId: string) {
   return request<RunResponse>(`/api/worlds/${worldId}/run/versions/${versionId}`, {
     method: 'DELETE',

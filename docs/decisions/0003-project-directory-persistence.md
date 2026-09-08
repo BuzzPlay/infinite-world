@@ -16,4 +16,4 @@ A single state file mixes shared settings, project configuration, current runtim
 
 ## Consequences
 
-Project data can grow without expanding one global file. Returning to an older version also restores its model and generation settings. Version media can later live beside its version state. Moving to another persistence backend remains isolated to `apps/api/src/storage/`.
+Project data can grow without expanding one global file. Returning to an older version also restores its model and generation settings. Generated video media is cached under the data root's shared `media/` directory and de-duplicated by source URL. Moving to another persistence backend remains isolated to `apps/api/src/storage/`.

@@ -28,7 +28,8 @@ Fastify API ---- runtime state and persistence
 - `generationTask` identifies the source scene and selected option while the next scene is being generated. The source remains the current scene until the generated scene is recorded.
 - Activating a saved scene makes it the current scene and enters `Running` without generating new media or requiring provider credentials. The run waits for the user to choose a direction; choosing one validates the saved version's provider configuration before generation starts.
 - `apps/api/src/providers/ai/` owns hosted AI and prompt adapters.
-- `text` projects use the existing choice interaction. `voice` projects add a free-form voice input path; browser speech is normalized to the same story direction before generation.
+- `text` projects use the existing choice interaction. `voice` projects add a free-form voice input path. `image` projects play a scene to its final frame, then expose generated interactive regions and their options; a selected option becomes the next story direction.
+- Replay follows saved scene ancestry and choices without creating a new branch or starting generation.
 - `apps/api/src/live/` owns chat integrations and live output processes.
 - `apps/api/src/storage/` owns local persistence.
 - `packages/api-contract/` owns request, response, and real-time event shapes.
@@ -66,6 +67,7 @@ Created -> Preparing -> Running -> Stopping -> Stopped
 9. Selecting an option records a story edge in the source scene's version. If that version is stopped, it becomes the active version and resumes generation.
 10. Deleting the current story branch removes its descendants and returns the running view to the closest surviving parent. If generation was using the deleted branch, that generation is aborted before the parent resumes waiting.
 11. Stop aborts active generation, releases run resources, clears `generationTask`, and publishes `Stopped`. The Web view returns to its Run state even when saved scenes still exist.
+12. Generated videos are cached locally after generation when possible. Existing remote video scenes can be cached in the background after their project is opened.
 
 ## Boundary Rules
 

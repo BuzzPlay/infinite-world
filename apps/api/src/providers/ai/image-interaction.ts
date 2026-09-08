@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import type { GeneratedInteractiveRegion, ProviderState } from '../../types.js';
 import { downloadModelImage, type ModelImage } from './model-image.js';
+import { optionLanguageInstruction } from './option-language.js';
 import { resolveVisionModel } from './vision-model.js';
 
 const regionSchema = z.object({
@@ -39,8 +40,7 @@ export class ImageInteractionGenerator {
       model,
       schema: regionSchema,
       schemaName: 'image_interaction_regions',
-      system:
-        'Find the most meaningful visible objects or areas a player can interact with in the supplied final frame. Return normalized bounding boxes where x and y are the top-left position and width and height are the box size, all from 0 to 1. Avoid overlapping boxes, faces without a meaningful action, background texture, and tiny details. Give each region two to four distinct, concrete actions that would visibly change the next scene. Use the image as the visual truth and preserve the world premise.',
+      system: `Find the most meaningful visible objects or areas a player can interact with in the supplied final frame. Return normalized bounding boxes where x and y are the top-left position and width and height are the box size, all from 0 to 1. Avoid overlapping boxes, faces without a meaningful action, background texture, and tiny details. Give each region two to four distinct, concrete actions that would visibly change the next scene. Use the image as the visual truth and preserve the world premise. ${optionLanguageInstruction(world.optionLanguage)} Reply with JSON only: {"regions":[{"label":"...","x":0.1,"y":0.1,"width":0.2,"height":0.2,"options":["...","..."]}]}. Do not use Markdown or add any text outside the JSON object.`,
       messages: imageMessages(requestText(world, scene), image),
       maxOutputTokens: 900,
       maxRetries: 3,

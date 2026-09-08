@@ -191,14 +191,21 @@ export function WorldDashboard({
         />
       </TabsContent>
       <TabsContent value="replay" className="absolute inset-0 m-0">
-        <ReplayPanel scenes={availableScenes} initialSceneId={currentScene?.id ?? null} />
+        <ReplayPanel
+          scenes={availableScenes}
+          initialSceneId={currentScene?.id ?? null}
+          interactionType={draft.interactionType}
+        />
       </TabsContent>
       <TabsContent value="customize" className="absolute inset-0 m-0">
         <CustomizePanel
           name={draft.name}
+          optionLanguage={draft.optionLanguage ?? 'en'}
           icon={projectIcon}
           busy={busy === 'save' || busy === 'delete-project'}
+          active={isActive}
           onSaveName={(name) => onSave({ ...draft, name })}
+          onOptionLanguageChange={(optionLanguage) => onSave({ ...draft, optionLanguage })}
           onIconChange={onProjectIconChange}
           onRequestDelete={onRequestDeleteProject}
         />

@@ -1,14 +1,20 @@
-import type { SceneOptionSnapshot, SceneSnapshot } from '@infinite-world/api-contract';
-import { ChevronLeft, ChevronRight, Folder, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  InteractionType,
+  SceneOptionSnapshot,
+  SceneSnapshot,
+} from '@infinite-world/api-contract';
+import { Folder, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../../i18n/use-translation';
 import { Button } from '../ui/button';
 import { BranchChoicePanel } from './branch-choice-panel';
+import { InteractiveRegionOverlay } from './interactive-region-overlay';
 
 interface ReplayPanelProps {
   scenes: SceneSnapshot[];
   initialSceneId: string | null;
+  interactionType: InteractionType;
 }
 
 interface ReplayPath {
@@ -21,8 +27,9 @@ interface ReplayChoice {
   optionId: string | null;
 }
 
-export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
+export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayPanelProps) {
   const { t } = useTranslation();
+  const imageReplay = interactionType === 'image';
   const paths = useMemo(() => buildReplayPaths(scenes), [scenes]);
   const initialPath = paths.find((path) =>
     path.scenes.some((scene) => scene.id === initialSceneId),
@@ -33,6 +40,8 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
   const [showSelectedOption, setShowSelectedOption] = useState(false);
   const [loopPlayback, setLoopPlayback] = useState(false);
   const [transitionChoice, setTransitionChoice] = useState<ReplayChoice | null>(null);
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+  const [videoEnded, setVideoEnded] = useState(false);
   const transitionChoiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -44,6 +53,41 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
 
   const selectedPath = paths.find((path) => path.id === selectedPathId) ?? paths[0] ?? null;
   const selectedScene = selectedPath?.scenes[sceneIndex] ?? null;
+  const selectedSceneId = selectedScene?.id ?? null;
+  const selectedSceneMediaType = selectedScene?.mediaType ?? 'none';
+  const regions = selectedScene?.interactiveRegions ?? [];
+  const selectedRegion = regions.find((region) => region.id === selectedRegionId) ?? null;
+  const imageReplayOptions =
+    selectedScene && selectedRegion
+      ? selectedScene.options.filter((option) => option.regionId === selectedRegion.id)
+      : [];
+  const unavailableImageReplayOptionIds = imageReplayOptions
+    .filter((option) => findSceneForOption(scenes, selectedScene?.id ?? '', option.id) === null)
+    .map((option) => option.id);
+
+  const chooseImageOption = useCallback(
+    (option: SceneOptionSnapshot) => {
+      if (!selectedScene) return;
+      const childScene = findSceneForOption(scenes, selectedScene.id, option.id);
+      if (!childScene) return;
+
+      const nextPath = paths.find((path) => {
+        const childIndex = path.scenes.findIndex((scene) => scene.id === childScene.id);
+        return childIndex > 0 && path.scenes[childIndex - 1]?.id === selectedScene.id;
+      });
+      if (!nextPath) return;
+
+      const nextSceneIndex = nextPath.scenes.findIndex((scene) => scene.id === childScene.id);
+      if (nextSceneIndex < 0) return;
+
+      setTransitionChoice(null);
+      setSelectedPathId(nextPath.id);
+      setSceneIndex(nextSceneIndex);
+      setSelectedRegionId(null);
+      setVideoEnded(false);
+    },
+    [paths, scenes, selectedScene],
+  );
 
   useEffect(() => {
     if (selectedPath && selectedPath.id === selectedPathId) return;
@@ -58,6 +102,12 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
     setShowSelectedOption(false);
   }, [sceneIndex, selectedPath]);
 
+  useEffect(() => {
+    if (selectedSceneId === null) return;
+    setSelectedRegionId(null);
+    setVideoEnded(!imageReplay || selectedSceneMediaType !== 'video');
+  }, [imageReplay, selectedSceneId, selectedSceneMediaType]);
+
   if (!selectedPath || !selectedScene) {
     return (
       <div className="grid h-full min-h-[100dvh] place-items-center bg-background px-6 text-sm text-muted-foreground">
@@ -68,8 +118,8 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
 
   const nextScene = selectedPath.scenes[sceneIndex + 1] ?? null;
   const selectedOptionId = nextScene?.sourceOptionId ?? null;
-  const isFirstScene = sceneIndex === 0;
   const isLastScene = sceneIndex === selectedPath.scenes.length - 1;
+  const showImageChoices = imageReplay && videoEnded && selectedRegion !== null;
 
   const choosePath = (path: ReplayPath) => {
     if (transitionChoiceTimer.current) clearTimeout(transitionChoiceTimer.current);
@@ -80,34 +130,53 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
     setPathsOpen(false);
   };
 
+  const selectImageRegion = (regionId: string) => {
+    setSelectedRegionId(regionId);
+  };
+
   return (
-    <div className="relative h-full min-h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+    <div
+      className="relative h-full min-h-[100dvh] w-full overflow-hidden bg-background text-foreground"
+      onPointerDownCapture={(event) => {
+        if (!imageReplay || selectedRegionId === null) return;
+        if (event.target instanceof Element && event.target.closest('[data-choice-panel]')) return;
+        setSelectedRegionId(null);
+      }}
+    >
       {selectedScene.previewUrl && selectedScene.mediaType === 'video' ? (
-        <ReplayVideo
-          scene={selectedScene}
-          nextScene={nextScene}
-          onAdvance={() => {
-            if (!isLastScene) {
-              setTransitionChoice({
-                options: selectedScene.options,
-                optionId: selectedOptionId,
-              });
+        imageReplay ? (
+          <ImageReplayVideo
+            scene={selectedScene}
+            sceneLabel={t('dashboard.scene', { sequence: selectedScene.sequence })}
+            onEnded={() => setVideoEnded(true)}
+          />
+        ) : (
+          <ReplayVideo
+            scene={selectedScene}
+            nextScene={nextScene}
+            onAdvance={() => {
+              if (!isLastScene) {
+                setTransitionChoice({
+                  options: selectedScene.options,
+                  optionId: selectedOptionId,
+                });
+                setShowSelectedOption(false);
+                setSceneIndex((current) => current + 1);
+                transitionChoiceTimer.current = setTimeout(() => {
+                  setTransitionChoice(null);
+                  transitionChoiceTimer.current = null;
+                }, 700);
+              }
+            }}
+            onNearEnd={() => setShowSelectedOption(true)}
+            loop={loopPlayback}
+            onLoop={() => {
               setShowSelectedOption(false);
-              setSceneIndex((current) => current + 1);
-              transitionChoiceTimer.current = setTimeout(() => {
-                setTransitionChoice(null);
-                transitionChoiceTimer.current = null;
-              }, 700);
-            }
-          }}
-          onNearEnd={() => setShowSelectedOption(true)}
-          loop={loopPlayback}
-          onLoop={() => {
-            setShowSelectedOption(false);
-            setSceneIndex(0);
-          }}
-          sceneLabel={t('dashboard.scene', { sequence: selectedScene.sequence })}
-        />
+              setSceneIndex(0);
+            }}
+            sceneLabel={t('dashboard.scene', { sequence: selectedScene.sequence })}
+          />
+        )
       ) : selectedScene.previewUrl ? (
         // biome-ignore lint/performance/noImgElement: Generated media uses arbitrary provider URLs.
         <img
@@ -123,38 +192,14 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
 
       <div className="pointer-events-none absolute inset-0 bg-black/10" aria-hidden="true" />
 
-      <div className="absolute left-4 top-3 z-10 flex items-center gap-2 rounded-lg border border-border/80 bg-background/90 p-1 shadow-sm backdrop-blur-md sm:left-6">
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          title={t('dashboard.previousReplayScene')}
-          aria-label={t('dashboard.previousReplayScene')}
-          disabled={isFirstScene}
-          onClick={() => setSceneIndex((current) => Math.max(0, current - 1))}
-        >
-          <ChevronLeft size={16} aria-hidden="true" />
-        </Button>
-        <span className="px-1 text-xs text-muted-foreground">
-          {t('dashboard.replayProgress', {
-            current: sceneIndex + 1,
-            total: selectedPath.scenes.length,
-          })}
-        </span>
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          title={t('dashboard.nextReplayScene')}
-          aria-label={t('dashboard.nextReplayScene')}
-          disabled={isLastScene}
-          onClick={() =>
-            setSceneIndex((current) => Math.min(selectedPath.scenes.length - 1, current + 1))
-          }
-        >
-          <ChevronRight size={16} aria-hidden="true" />
-        </Button>
-      </div>
+      {imageReplay && videoEnded && regions.length > 0 ? (
+        <InteractiveRegionOverlay
+          regions={regions}
+          selectedRegionId={selectedRegionId}
+          disabled={false}
+          onSelect={selectImageRegion}
+        />
+      ) : null}
 
       <div className="absolute right-4 top-3 z-20 flex items-center gap-1 sm:right-6">
         <Button
@@ -170,16 +215,32 @@ export function ReplayPanel({ scenes, initialSceneId }: ReplayPanelProps) {
         </Button>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
-        <BranchChoicePanel
-          options={transitionChoice?.options ?? selectedScene.options}
-          selectedOptionId={
-            transitionChoice?.optionId ?? (showSelectedOption ? selectedOptionId : null)
-          }
-          loopEnabled={loopPlayback}
-          onLoopToggle={() => setLoopPlayback((enabled) => !enabled)}
-        />
-      </div>
+      {!imageReplay || showImageChoices ? (
+        <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
+          <BranchChoicePanel
+            options={
+              imageReplay
+                ? imageReplayOptions
+                : (transitionChoice?.options ?? selectedScene.options)
+            }
+            selectedOptionId={
+              imageReplay
+                ? null
+                : (transitionChoice?.optionId ?? (showSelectedOption ? selectedOptionId : null))
+            }
+            unavailableOptionIds={imageReplay ? unavailableImageReplayOptionIds : undefined}
+            onSelect={
+              imageReplay
+                ? (option) => {
+                    chooseImageOption(option);
+                  }
+                : undefined
+            }
+            loopEnabled={loopPlayback}
+            onLoopToggle={imageReplay ? undefined : () => setLoopPlayback((enabled) => !enabled)}
+          />
+        </div>
+      ) : null}
 
       {pathsOpen ? (
         <aside className="absolute inset-y-3 right-3 z-30 flex w-[min(21rem,calc(100%-1.5rem))] flex-col overflow-hidden rounded-xl border border-border bg-background/95 shadow-xl backdrop-blur-md">
@@ -355,6 +416,104 @@ function ReplayVideo({
         />
       ) : null}
     </div>
+  );
+}
+
+function ImageReplayVideo({
+  scene,
+  sceneLabel,
+  onEnded,
+}: {
+  scene: SceneSnapshot;
+  sceneLabel: string;
+  onEnded: () => void;
+}) {
+  const activeVideoRef = useRef<HTMLVideoElement>(null);
+  const incomingVideoRef = useRef<HTMLVideoElement>(null);
+  const startedSceneIdRef = useRef<string | null>(null);
+  const [displayedScene, setDisplayedScene] = useState(scene);
+  const [incomingScene, setIncomingScene] = useState<SceneSnapshot | null>(null);
+  const [incomingReady, setIncomingReady] = useState(false);
+
+  useEffect(() => {
+    if (scene.id === displayedScene.id) return;
+    setIncomingScene(scene);
+    setIncomingReady(false);
+  }, [displayedScene.id, scene]);
+
+  useEffect(() => {
+    if (!incomingReady || !incomingScene) return;
+    const timer = window.setTimeout(() => {
+      setDisplayedScene(incomingScene);
+      setIncomingScene(null);
+      setIncomingReady(false);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [incomingReady, incomingScene]);
+
+  const handleIncomingReady = () => {
+    const video = incomingVideoRef.current;
+    if (!video || incomingReady) return;
+    video.currentTime = 0;
+    void video.play().catch(() => undefined);
+    setIncomingReady(true);
+  };
+
+  const handleActiveReady = () => {
+    const video = activeVideoRef.current;
+    if (!video || startedSceneIdRef.current === displayedScene.id) return;
+    startedSceneIdRef.current = displayedScene.id;
+    video.currentTime = 0;
+    void video.play().catch(() => undefined);
+  };
+
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-background">
+      <video
+        ref={activeVideoRef}
+        key={displayedScene.id}
+        className={cn(
+          'absolute inset-0 size-full object-cover transition-opacity duration-300',
+          incomingReady && 'opacity-0',
+        )}
+        src={displayedScene.previewUrl}
+        autoPlay
+        controls={false}
+        muted
+        playsInline
+        preload="auto"
+        onLoadedData={handleActiveReady}
+        onEnded={() => {
+          if (!incomingScene) onEnded();
+        }}
+        aria-label={sceneLabel}
+      />
+      {incomingScene ? (
+        <video
+          ref={incomingVideoRef}
+          key={incomingScene.id}
+          className={cn(
+            'pointer-events-none absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-300',
+            incomingReady && 'opacity-100',
+          )}
+          src={incomingScene.previewUrl}
+          controls={false}
+          muted
+          playsInline
+          preload="auto"
+          onCanPlay={handleIncomingReady}
+          aria-label={sceneLabel}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function findSceneForOption(scenes: SceneSnapshot[], parentSceneId: string, optionId: string) {
+  return (
+    scenes.find(
+      (scene) => scene.parentSceneId === parentSceneId && scene.sourceOptionId === optionId,
+    ) ?? null
   );
 }
 

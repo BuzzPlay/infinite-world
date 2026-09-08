@@ -5,19 +5,24 @@ export const GOOGLE_MODEL = 'google/gemini-2.5-flash';
 export const GOOGLE_FLASH_LITE_MODEL = 'google/gemini-2.5-flash-lite';
 export const FAL_GEMINI_MODEL = 'fal/google/gemini-2.5-flash';
 export const FAL_GEMINI_FLASH_LITE_MODEL = 'fal/google/gemini-2.5-flash-lite';
+export const OPENAI_GPT_56_SOL_MODEL = 'openai/gpt-5.6-sol';
+export const OPENAI_GPT_6_ASTRA_MODEL = 'openai/gpt-6-astra';
 export const LTX_23_FAST_VIDEO_MODEL = 'fal/ltx-2.3-fast';
 export const LTX_23_FAST_TEXT_ENDPOINT = 'fal-ai/ltx-2.3/text-to-video/fast';
 export const LTX_23_FAST_IMAGE_ENDPOINT = 'fal-ai/ltx-2.3/image-to-video/fast';
 export const MINIMAX_H3_VIDEO_MODEL = 'fal/minimax-h3';
 export const MINIMAX_H3_TEXT_ENDPOINT = 'minimax/h3/text-to-video';
 export const MINIMAX_H3_IMAGE_ENDPOINT = 'minimax/h3/image-to-video';
+export const SEEDANCE_25_VIDEO_MODEL = 'fal/seedance-2.5';
+export const SEEDANCE_25_TEXT_ENDPOINT = 'bytedance/seedance-2.5/text-to-video';
+export const SEEDANCE_25_IMAGE_ENDPOINT = 'bytedance/seedance-2.5/image-to-video';
 export const DEFAULT_VISION_MODEL = GOOGLE_MODEL;
 export const DEFAULT_VIDEO_MODEL = LTX_23_FAST_VIDEO_MODEL;
 
-export type ModelProvider = 'none' | 'google' | 'fal';
-export type ModelApiKey = null | 'googleApiKey' | 'falApiKey';
+export type ModelProvider = 'none' | 'google' | 'openai' | 'fal';
+export type ModelApiKey = null | 'googleApiKey' | 'openaiApiKey' | 'falApiKey';
 export type VideoInputMode = 'text-to-video' | 'image-to-video';
-export type VideoResolution = '480P' | '768P' | '2K' | '4K' | '1080p' | '1440p' | '2160p';
+export type VideoResolution = '480P' | '720p' | '768P' | '2K' | '4K' | '1080p' | '1440p' | '2160p';
 export type VideoAspectRatio = 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16';
 
 export interface VideoModelProfile {
@@ -45,6 +50,7 @@ export interface VideoModelProfile {
 
 export interface ModelProviderConfiguration {
   googleApiKeyConfigured: boolean;
+  openaiApiKeyConfigured: boolean;
   falApiKeyConfigured: boolean;
 }
 
@@ -87,6 +93,20 @@ export const MODEL_CATALOG = {
       provider: 'fal',
       modelId: 'google/gemini-2.5-flash-lite',
       apiKey: 'falApiKey',
+    },
+    {
+      id: OPENAI_GPT_56_SOL_MODEL,
+      label: 'GPT-5.6 Sol',
+      provider: 'openai',
+      modelId: 'gpt-5.6-sol',
+      apiKey: 'openaiApiKey',
+    },
+    {
+      id: OPENAI_GPT_6_ASTRA_MODEL,
+      label: 'GPT-6 Astra',
+      provider: 'openai',
+      modelId: 'gpt-6-astra',
+      apiKey: 'openaiApiKey',
     },
   ],
   video: [
@@ -148,6 +168,32 @@ export const MODEL_CATALOG = {
         },
       },
     },
+    {
+      id: SEEDANCE_25_VIDEO_MODEL,
+      label: 'Seedance 2.5',
+      provider: 'fal',
+      modelId: null,
+      apiKey: 'falApiKey',
+      video: {
+        endpoints: {
+          'text-to-video': SEEDANCE_25_TEXT_ENDPOINT,
+          'image-to-video': SEEDANCE_25_IMAGE_ENDPOINT,
+        },
+        durations: [4, 5, 6, 8, 10, 15, 20, 30],
+        frameRates: [24],
+        resolutions: ['720p'],
+        aspectRatios: ['auto'],
+        supportsFrameRateControl: false,
+        supportsAudio: false,
+        defaults: {
+          durationSeconds: 5,
+          frameRate: 24,
+          resolution: '720p',
+          aspectRatio: 'auto',
+          enableAudio: false,
+        },
+      },
+    },
   ],
 } as const satisfies Record<ModelCapability, readonly ModelDefinition[]>;
 
@@ -198,16 +244,18 @@ export function isModelConfigured(
   const model = findModel(capability, id);
   if (!model) return false;
   if (model.apiKey === null) return true;
-  return model.apiKey === 'googleApiKey'
-    ? configuration.googleApiKeyConfigured
-    : configuration.falApiKeyConfigured;
+  if (model.apiKey === 'googleApiKey') return configuration.googleApiKeyConfigured;
+  if (model.apiKey === 'openaiApiKey') return configuration.openaiApiKeyConfigured;
+  return configuration.falApiKeyConfigured;
 }
 
 export function defaultVisionModelFor(
   googleApiKeyConfigured: boolean,
+  openaiApiKeyConfigured: boolean,
   falApiKeyConfigured: boolean,
 ) {
   if (googleApiKeyConfigured) return DEFAULT_VISION_MODEL;
+  if (openaiApiKeyConfigured) return OPENAI_GPT_56_SOL_MODEL;
   if (falApiKeyConfigured) return FAL_GEMINI_MODEL;
   return 'none';
 }

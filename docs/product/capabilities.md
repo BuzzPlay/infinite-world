@@ -4,7 +4,7 @@ This document defines the capability baseline currently supported by the local w
 
 ## World Setup
 
-- Create a world with a text or voice-and-text interaction type, name, initial prompt, initial image, and optional character references.
+- Create a world with a `text`, `voice`, or `image` interaction type, name, initial prompt, initial image, and optional character references.
 - Select a generation backend and configure output when starting a run.
 - Configure dimensions, model-supported duration, guidance, seed, and generation mode when supported by the backend. Frame rate follows the selected model's default.
 - Save the configuration used by each run.
@@ -14,7 +14,8 @@ This document defines the capability baseline currently supported by the local w
 - Generate the first scene from the world configuration.
 - Generate consecutive scenes from the latest scene, current world state, and recent generation context.
 - Create prompts from the world state, selected directions, and recent scene context.
-- Voice-and-text worlds accept either editable text input or browser speech input. Speech is transcribed into the same editable input before submission.
+- Voice worlds accept a spoken direction before submitting it as the next story direction.
+- Image worlds pause on a generated video's final frame, expose meaningful visible regions, and use a selected region and option as the next story direction.
 - Support hosted generation through provider adapters.
 - Support image-to-video input and character references when the selected backend provides them.
 - Track the run state, scene count, prompt history, timing, and errors.
@@ -27,6 +28,8 @@ This document defines the capability baseline currently supported by the local w
 ## Preview And Outputs
 
 - Preview the current scene in the browser during a local run.
+- Replay saved scene paths and recorded choices without creating new branches.
+- Cache generated video locally for subsequent browser playback.
 - Support video and audio playback with mute and connection state controls.
 - Preview generated image/video media in the browser.
 - Provide an FFmpeg-backed RTMP output path for live publishing.

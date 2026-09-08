@@ -34,6 +34,7 @@ export function deduplicateProjects(projects: ProjectRecord[]): ProjectRecord[] 
   return projects.filter((project) => {
     const configKey = JSON.stringify([
       project.interactionType,
+      project.optionLanguage ?? 'en',
       project.name,
       project.prompt,
       project.generation,

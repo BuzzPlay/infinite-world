@@ -25,6 +25,7 @@ import {
   setActiveVersionGeneration,
   touchMetrics,
 } from '../domain/run.js';
+import { cacheVideoAsset, isLocalMediaUrl } from '../providers/media/video-cache.js';
 import type { RuntimeState } from '../runtime/state.js';
 import { ApiError } from '../shared/errors.js';
 import type {
@@ -190,6 +191,26 @@ export class RunService {
     }
     run.revision += 1;
     this.state.persist();
+  }
+
+  async cacheSceneMedia(worldId: string, sceneId: string) {
+    this.requireActiveWorld(worldId);
+    const run = this.requireRun(worldId);
+    const scene = run.scenes.find((candidate) => candidate.id === sceneId);
+    if (!scene) throw new ApiError(404, 'not_found', 'scene does not exist');
+    if (
+      scene.mediaType !== 'video' ||
+      !scene.previewUrl.trim() ||
+      isLocalMediaUrl(scene.previewUrl)
+    ) {
+      return clone(run);
+    }
+
+    scene.previewUrl = await cacheVideoAsset(scene.previewUrl);
+    if (run.currentScene?.id === scene.id) run.currentScene = scene;
+    run.revision += 1;
+    this.state.persist();
+    return clone(run);
   }
 
   choose(worldId: string, optionId: string, sceneId?: string) {

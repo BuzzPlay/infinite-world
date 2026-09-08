@@ -1,3 +1,4 @@
+import type { OptionLanguage } from '@infinite-world/api-contract';
 import { Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -14,12 +15,16 @@ import { Button } from '../ui/button';
 import { EmojiPicker } from '../ui/emoji-picker';
 import { Input } from '../ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface CustomizePanelProps {
   name: string;
+  optionLanguage: OptionLanguage;
   icon?: string;
   busy: boolean;
+  active: boolean;
   onSaveName: (name: string) => Promise<boolean>;
+  onOptionLanguageChange: (language: OptionLanguage) => Promise<boolean>;
   onIconChange: (icon: string | undefined) => void;
   onRequestDelete: () => void;
 }
@@ -37,9 +42,12 @@ const COLOR_SWATCHES: Record<ProjectIconColor, string> = {
 
 export function CustomizePanel({
   name,
+  optionLanguage,
   icon,
   busy,
+  active,
   onSaveName,
+  onOptionLanguageChange,
   onIconChange,
   onRequestDelete,
 }: CustomizePanelProps) {
@@ -228,6 +236,31 @@ export function CustomizePanel({
               className="sm:max-w-sm"
               aria-label={t('project.name')}
             />
+          </div>
+          <div className="flex flex-col gap-3 border-t border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <h2 className="text-sm font-medium">{t('project.optionLanguage')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {active
+                  ? t('project.optionLanguageLocked')
+                  : t('project.optionLanguageDescription')}
+              </p>
+            </div>
+            <Select
+              value={optionLanguage}
+              disabled={busy || active}
+              onValueChange={(value) => {
+                if (value === 'en' || value === 'zh') void onOptionLanguageChange(value);
+              }}
+            >
+              <SelectTrigger className="sm:w-48" aria-label={t('project.optionLanguage')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">{t('project.optionLanguageEnglish')}</SelectItem>
+                <SelectItem value="zh">{t('project.optionLanguageChinese')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </section>
 

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import type { ProviderState } from '../../types.js';
 import { downloadModelImage, type ModelImage } from './model-image.js';
+import { optionLanguageInstruction } from './option-language.js';
 import { resolveVisionModel } from './vision-model.js';
 
 const optionsSchema = z.object({
@@ -38,8 +39,7 @@ export class SceneOptionGenerator {
       model,
       schema: optionsSchema,
       schemaName: 'scene_options',
-      system:
-        'Create exactly four short, clearly different actions a person can choose to shape the next scene of an interactive world. Use the supplied final frame as the visual truth. Preserve the characters, setting, time, and visible cause-and-effect, while advancing the story with interesting playable choices. Cover meaningfully different directions such as exploration, interaction, risk, and observation when they fit the scene. Do not repeat or lightly rephrase any existing option. Each option must describe one concrete visible action and contain no labels or explanations.',
+      system: `Create exactly four short, clearly different actions a person can choose to shape the next scene of an interactive world. Use the supplied final frame as the visual truth. Preserve the characters, setting, time, and visible cause-and-effect, while advancing the story with interesting playable choices. Cover meaningfully different directions such as exploration, interaction, risk, and observation when they fit the scene. Do not repeat or lightly rephrase any existing option. Each option must describe one concrete visible action and contain no labels or explanations. ${optionLanguageInstruction(context.world.optionLanguage)} Reply with JSON only: {"options":["...","...","...","..."]}. Do not use Markdown or add any text outside the JSON object.`,
       ...(image ? { messages: imageMessages(request, image) } : { prompt: request }),
       maxOutputTokens: 300,
       maxRetries: 3,
