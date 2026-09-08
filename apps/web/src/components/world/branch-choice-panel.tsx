@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 interface BranchChoicePanelProps {
   options: SceneOptionSnapshot[];
   selectedOptionId: string | null;
+  unavailableOptionIds?: readonly string[];
   disabled?: boolean;
   regenerating?: boolean;
   onSelect?: (option: SceneOptionSnapshot) => void;
@@ -21,6 +22,7 @@ interface BranchChoicePanelProps {
 export function BranchChoicePanel({
   options,
   selectedOptionId,
+  unavailableOptionIds = [],
   disabled = false,
   regenerating = false,
   onSelect,
@@ -42,6 +44,7 @@ export function BranchChoicePanel({
 
   return (
     <section
+      data-choice-panel
       className="pointer-events-auto w-full max-w-2xl rounded-md border border-border bg-background/95 p-2.5 text-foreground shadow-lg backdrop-blur-md"
       aria-label={t('dashboard.nextSceneChoices')}
     >
@@ -115,6 +118,8 @@ export function BranchChoicePanel({
         <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
           {options.map((option) => {
             const selected = option.id === selectedOptionId;
+            const unavailable = unavailableOptionIds.includes(option.id);
+            const replayOnly = !onSelect;
             return (
               <Button
                 key={option.id}
@@ -128,10 +133,12 @@ export function BranchChoicePanel({
                       : 'border-border/60 opacity-45 grayscale'
                     : selected
                       ? 'border-brand-blue bg-brand-blue/10 ring-1 ring-brand-blue/40'
-                      : 'border-border hover:bg-accent hover:text-accent-foreground')
+                      : unavailable || replayOnly
+                        ? 'border-border/50 bg-muted/80 text-muted-foreground shadow-none opacity-70'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground')
                 }
                 aria-pressed={selected}
-                disabled={disabled || !onSelect}
+                disabled={disabled || unavailable || !onSelect}
                 onClick={() => onSelect?.(option)}
               >
                 <span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-foreground">

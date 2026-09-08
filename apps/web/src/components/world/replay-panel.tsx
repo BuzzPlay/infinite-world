@@ -3,7 +3,7 @@ import type {
   SceneOptionSnapshot,
   SceneSnapshot,
 } from '@infinite-world/api-contract';
-import { ChevronLeft, ChevronRight, Folder, Timer, X } from 'lucide-react';
+import { Folder, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../../i18n/use-translation';
@@ -42,10 +42,7 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
   const [transitionChoice, setTransitionChoice] = useState<ReplayChoice | null>(null);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
   const [videoEnded, setVideoEnded] = useState(false);
-  const [imageAutoEnabled, setImageAutoEnabled] = useState(false);
-  const [imageAutoCountdown, setImageAutoCountdown] = useState<number | null>(null);
   const transitionChoiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const imageAutoCountdownRef = useRef<number | null>(null);
 
   useEffect(
     () => () => {
@@ -62,33 +59,11 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
   const selectedRegion = regions.find((region) => region.id === selectedRegionId) ?? null;
   const imageReplayOptions =
     selectedScene && selectedRegion
-      ? selectedScene.options.filter(
-          (option) =>
-            option.regionId === selectedRegion.id &&
-            findSceneForOption(scenes, selectedScene.id, option.id) !== null,
-        )
+      ? selectedScene.options.filter((option) => option.regionId === selectedRegion.id)
       : [];
-  const hasImageAutoRegions = Boolean(
-    selectedScene &&
-      regions.some((region) =>
-        selectedScene.options.some(
-          (option) =>
-            option.regionId === region.id &&
-            findSceneForOption(scenes, selectedScene.id, option.id) !== null,
-        ),
-      ),
-  );
-  const canImageAutoAdvance =
-    imageReplay &&
-    videoEnded &&
-    selectedScene !== null &&
-    (selectedRegionId === null ? hasImageAutoRegions : imageReplayOptions.length > 0);
-
-  const stopImageAuto = useCallback(() => {
-    imageAutoCountdownRef.current = null;
-    setImageAutoEnabled(false);
-    setImageAutoCountdown(null);
-  }, []);
+  const unavailableImageReplayOptionIds = imageReplayOptions
+    .filter((option) => findSceneForOption(scenes, selectedScene?.id ?? '', option.id) === null)
+    .map((option) => option.id);
 
   const chooseImageOption = useCallback(
     (option: SceneOptionSnapshot) => {
@@ -133,76 +108,6 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
     setVideoEnded(!imageReplay || selectedSceneMediaType !== 'video');
   }, [imageReplay, selectedSceneId, selectedSceneMediaType]);
 
-  useEffect(() => {
-    if (!imageAutoEnabled || !imageReplay || !selectedScene || !videoEnded) {
-      imageAutoCountdownRef.current = null;
-      setImageAutoCountdown(null);
-      return;
-    }
-    if (!canImageAutoAdvance) {
-      stopImageAuto();
-      return;
-    }
-
-    imageAutoCountdownRef.current = 5;
-    setImageAutoCountdown(5);
-    const timer = window.setInterval(() => {
-      const current = imageAutoCountdownRef.current;
-      if (current === null) return;
-      if (current > 1) {
-        const next = current - 1;
-        imageAutoCountdownRef.current = next;
-        setImageAutoCountdown(next);
-        return;
-      }
-
-      imageAutoCountdownRef.current = null;
-      setImageAutoCountdown(null);
-      if (selectedRegionId === null) {
-        const regionsWithBranches = regions.filter((region) =>
-          selectedScene.options.some(
-            (option) =>
-              option.regionId === region.id &&
-              findSceneForOption(scenes, selectedScene.id, option.id) !== null,
-          ),
-        );
-        const region =
-          regionsWithBranches[Math.floor(Math.random() * regionsWithBranches.length)] ?? null;
-        if (!region) {
-          stopImageAuto();
-          return;
-        }
-        setSelectedRegionId(region.id);
-        return;
-      }
-
-      const options = selectedScene.options.filter(
-        (option) =>
-          option.regionId === selectedRegionId &&
-          findSceneForOption(scenes, selectedScene.id, option.id) !== null,
-      );
-      const option = options[Math.floor(Math.random() * options.length)];
-      if (!option) {
-        stopImageAuto();
-        return;
-      }
-      chooseImageOption(option);
-    }, 1_000);
-
-    return () => window.clearInterval(timer);
-  }, [
-    canImageAutoAdvance,
-    chooseImageOption,
-    imageAutoEnabled,
-    imageReplay,
-    regions,
-    scenes,
-    selectedRegionId,
-    selectedScene,
-    stopImageAuto,
-    videoEnded,
-  ]);
-
   if (!selectedPath || !selectedScene) {
     return (
       <div className="grid h-full min-h-[100dvh] place-items-center bg-background px-6 text-sm text-muted-foreground">
@@ -213,13 +118,11 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
 
   const nextScene = selectedPath.scenes[sceneIndex + 1] ?? null;
   const selectedOptionId = nextScene?.sourceOptionId ?? null;
-  const isFirstScene = sceneIndex === 0;
   const isLastScene = sceneIndex === selectedPath.scenes.length - 1;
   const showImageChoices = imageReplay && videoEnded && selectedRegion !== null;
 
   const choosePath = (path: ReplayPath) => {
     if (transitionChoiceTimer.current) clearTimeout(transitionChoiceTimer.current);
-    stopImageAuto();
     setTransitionChoice(null);
     setSelectedPathId(path.id);
     setSceneIndex(0);
@@ -227,21 +130,19 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
     setPathsOpen(false);
   };
 
-  const toggleImageAuto = () => {
-    if (imageAutoEnabled) {
-      stopImageAuto();
-      return;
-    }
-    setImageAutoEnabled(true);
-  };
-
   const selectImageRegion = (regionId: string) => {
-    stopImageAuto();
     setSelectedRegionId(regionId);
   };
 
   return (
-    <div className="relative h-full min-h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+    <div
+      className="relative h-full min-h-[100dvh] w-full overflow-hidden bg-background text-foreground"
+      onPointerDownCapture={(event) => {
+        if (!imageReplay || selectedRegionId === null) return;
+        if (event.target instanceof Element && event.target.closest('[data-choice-panel]')) return;
+        setSelectedRegionId(null);
+      }}
+    >
       {selectedScene.previewUrl && selectedScene.mediaType === 'video' ? (
         imageReplay ? (
           <ImageReplayVideo
@@ -300,43 +201,6 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
         />
       ) : null}
 
-      <div className="absolute left-4 top-3 z-10 flex items-center gap-2 rounded-lg border border-border/80 bg-background/90 p-1 shadow-sm backdrop-blur-md sm:left-6">
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          title={t('dashboard.previousReplayScene')}
-          aria-label={t('dashboard.previousReplayScene')}
-          disabled={isFirstScene}
-          onClick={() => {
-            stopImageAuto();
-            setSceneIndex((current) => Math.max(0, current - 1));
-          }}
-        >
-          <ChevronLeft size={16} aria-hidden="true" />
-        </Button>
-        <span className="px-1 text-xs text-muted-foreground">
-          {t('dashboard.replayProgress', {
-            current: sceneIndex + 1,
-            total: selectedPath.scenes.length,
-          })}
-        </span>
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          title={t('dashboard.nextReplayScene')}
-          aria-label={t('dashboard.nextReplayScene')}
-          disabled={isLastScene}
-          onClick={() => {
-            stopImageAuto();
-            setSceneIndex((current) => Math.min(selectedPath.scenes.length - 1, current + 1));
-          }}
-        >
-          <ChevronRight size={16} aria-hidden="true" />
-        </Button>
-      </div>
-
       <div className="absolute right-4 top-3 z-20 flex items-center gap-1 sm:right-6">
         <Button
           type="button"
@@ -351,36 +215,6 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
         </Button>
       </div>
 
-      {imageReplay && videoEnded && selectedRegion === null && regions.length > 0 ? (
-        <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
-          <Button
-            type="button"
-            variant={imageAutoEnabled ? 'secondary' : 'background'}
-            size="sm"
-            className="pointer-events-auto h-8 gap-1.5 border border-border px-3 text-xs shadow-lg"
-            disabled={!hasImageAutoRegions}
-            onClick={toggleImageAuto}
-            title={
-              imageAutoEnabled
-                ? t('dashboard.disableAutoAdvance')
-                : t('dashboard.enableAutoAdvance')
-            }
-            aria-label={
-              imageAutoEnabled
-                ? t('dashboard.disableAutoAdvance')
-                : t('dashboard.enableAutoAdvance')
-            }
-            aria-pressed={imageAutoEnabled}
-          >
-            <Timer size={14} aria-hidden="true" />
-            <span>{t('dashboard.auto')}</span>
-            {imageAutoEnabled && imageAutoCountdown !== null ? (
-              <span className="tabular-nums text-muted-foreground">{imageAutoCountdown}s</span>
-            ) : null}
-          </Button>
-        </div>
-      ) : null}
-
       {!imageReplay || showImageChoices ? (
         <div className="pointer-events-none absolute inset-x-3 bottom-4 z-10 flex justify-center sm:inset-x-6 sm:bottom-6">
           <BranchChoicePanel
@@ -394,17 +228,14 @@ export function ReplayPanel({ scenes, initialSceneId, interactionType }: ReplayP
                 ? null
                 : (transitionChoice?.optionId ?? (showSelectedOption ? selectedOptionId : null))
             }
+            unavailableOptionIds={imageReplay ? unavailableImageReplayOptionIds : undefined}
             onSelect={
               imageReplay
                 ? (option) => {
-                    stopImageAuto();
                     chooseImageOption(option);
                   }
                 : undefined
             }
-            autoEnabled={imageReplay && imageAutoEnabled}
-            autoCountdown={imageReplay ? imageAutoCountdown : null}
-            onAutoToggle={imageReplay ? toggleImageAuto : undefined}
             loopEnabled={loopPlayback}
             onLoopToggle={imageReplay ? undefined : () => setLoopPlayback((enabled) => !enabled)}
           />
@@ -597,19 +428,83 @@ function ImageReplayVideo({
   sceneLabel: string;
   onEnded: () => void;
 }) {
+  const activeVideoRef = useRef<HTMLVideoElement>(null);
+  const incomingVideoRef = useRef<HTMLVideoElement>(null);
+  const startedSceneIdRef = useRef<string | null>(null);
+  const [displayedScene, setDisplayedScene] = useState(scene);
+  const [incomingScene, setIncomingScene] = useState<SceneSnapshot | null>(null);
+  const [incomingReady, setIncomingReady] = useState(false);
+
+  useEffect(() => {
+    if (scene.id === displayedScene.id) return;
+    setIncomingScene(scene);
+    setIncomingReady(false);
+  }, [displayedScene.id, scene]);
+
+  useEffect(() => {
+    if (!incomingReady || !incomingScene) return;
+    const timer = window.setTimeout(() => {
+      setDisplayedScene(incomingScene);
+      setIncomingScene(null);
+      setIncomingReady(false);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [incomingReady, incomingScene]);
+
+  const handleIncomingReady = () => {
+    const video = incomingVideoRef.current;
+    if (!video || incomingReady) return;
+    video.currentTime = 0;
+    void video.play().catch(() => undefined);
+    setIncomingReady(true);
+  };
+
+  const handleActiveReady = () => {
+    const video = activeVideoRef.current;
+    if (!video || startedSceneIdRef.current === displayedScene.id) return;
+    startedSceneIdRef.current = displayedScene.id;
+    video.currentTime = 0;
+    void video.play().catch(() => undefined);
+  };
+
   return (
     <div className="absolute inset-0 overflow-hidden bg-background">
       <video
-        key={scene.id}
-        className="absolute inset-0 size-full object-cover"
-        src={scene.previewUrl}
+        ref={activeVideoRef}
+        key={displayedScene.id}
+        className={cn(
+          'absolute inset-0 size-full object-cover transition-opacity duration-300',
+          incomingReady && 'opacity-0',
+        )}
+        src={displayedScene.previewUrl}
         autoPlay
         controls={false}
         muted
         playsInline
-        onEnded={onEnded}
+        preload="auto"
+        onLoadedData={handleActiveReady}
+        onEnded={() => {
+          if (!incomingScene) onEnded();
+        }}
         aria-label={sceneLabel}
       />
+      {incomingScene ? (
+        <video
+          ref={incomingVideoRef}
+          key={incomingScene.id}
+          className={cn(
+            'pointer-events-none absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-300',
+            incomingReady && 'opacity-100',
+          )}
+          src={incomingScene.previewUrl}
+          controls={false}
+          muted
+          playsInline
+          preload="auto"
+          onCanPlay={handleIncomingReady}
+          aria-label={sceneLabel}
+        />
+      ) : null}
     </div>
   );
 }

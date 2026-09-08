@@ -252,6 +252,11 @@ export function PreviewCanvas({
         hasMedia ? 'bg-neutral-950 text-white' : 'bg-background text-foreground',
       )}
       ref={previewRef}
+      onPointerDownCapture={(event) => {
+        if (!imageMode || selectedRegionId === null) return;
+        if (event.target instanceof Element && event.target.closest('[data-choice-panel]')) return;
+        setSelectedRegionId(null);
+      }}
     >
       {hasMedia ? (
         displayedMediaScene?.mediaType === 'video' ? (
