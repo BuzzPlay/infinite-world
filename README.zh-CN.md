@@ -29,7 +29,7 @@
 
 Infinite World 将多模态理解、世界模拟和交互连接成一个持续运行的循环：
 
-- **理解：** 读取文本、图片、视频、声音和外部事件。
+- **理解：** 读取提示词、图片和已生成的场景上下文。
 - **模拟：** 将输入转化为世界状态、规则和可能的下一步行动。
 - **交互：** 让人、智能体和事件影响接下来发生的事情。
 - **持续运行：** 记录世界运行中的场景、选择、状态变化和分支。
@@ -50,10 +50,11 @@ Infinite World 选择开源，希望更多开发者、创作者和研究者一�
 
 | 方向 | 当前进展 |
 | --- | --- |
-| 文字交互 | 通过文字输入和选项影响世界状态与后续场景，开发中 |
-| 语音交互 | 使用浏览器语音输入进行世界交互，开发中 |
-| 连续世界 | 跨场景保留世界状态和上下文，连续生成仍在完善 |
-| 本地预览 | 配置并运行世界，查看运行历史和指标，已有原型 |
+| 文字交互 | 通过文字输入和选项影响世界状态与后续场景，现已可用 |
+| 语音交互 | 使用语音输入影响世界，现已可用 |
+| 图片交互 | 在场景最后画面中选择可交互区域，决定接下来的发展，现已可用 |
+| 连续世界 | 跨场景和剧情分支保留世界状态与上下文，现已可用 |
+| 本地预览与回放 | 在本地运行世界、回看保存的分支，并播放已缓存的生成视频，现已可用 |
 | 直播 | 直播互动功能开发中 |
 | 更多交互 | 聊天、声音、鼠标和键盘输入，计划中 |
 
@@ -84,10 +85,9 @@ Linux 可以使用发行版的包管理器安装或自行构建 `whisper.cpp` CL
 下载或构建对应的 CLI，并将所在目录加入 `PATH`。
 
 API 构建时会自动准备 `ggml-base` Whisper 模型，并将模型缓存到仓库之外。第一次构建或第一次
-使用语音输入时需要网络连接。如果使用自定义安装或模型路径，可以在 `apps/api/.env` 中设置
-如果 `whisper-cli` 已经在 `PATH` 中，`INFINITE_WORLD_WHISPER_BIN` 不需要填写。只有在 CLI
-使用了自定义名称或路径时才需要设置。`INFINITE_WORLD_WHISPER_MODEL` 同样是可选项，仅在使用
-自定义模型路径时设置。
+使用语音输入时需要网络连接。若 `whisper-cli` 已经在 `PATH` 中，
+`INFINITE_WORLD_WHISPER_BIN` 不需要填写；只有 CLI 使用自定义名称或路径时才需要设置。
+`INFINITE_WORLD_WHISPER_MODEL` 同样是可选项，仅在使用自定义模型路径时设置。
 
 分别在两个终端启动 API 和 Web 应用：
 
@@ -126,7 +126,8 @@ pnpm dev:web
 | **Branch 分支** | 由选项或事件产生的一种可能延续。 |
 | **History 历史** | 世界状态、场景、选择和路径的运行记录。 |
 | **Output 输出** | 观察或分享运行过程的方式，例如本地预览或 RTMP 直播。 |
-| **Preview 预览** | 在分享世界前，用于本地测试和塑造世界的界面。 |
+| **Preview 预览** | 在分享世界前，用于本地运行和塑造世界的界面。 |
+| **Replay 回放** | 回看一个世界中已保存场景和选择路径的方式。 |
 
 运行时边界、生命周期和 API 协议请参阅[架构文档](docs/architecture/README.md)。
 
@@ -136,8 +137,8 @@ pnpm dev:web
 
 | 方向 | 概念视频 | 状态 |
 | --- | --- | --- |
-| **图文输入** | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> | 开发中 |
-| **声音输入** | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> | 计划中 |
+| **图文输入** | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> | 已可用 |
+| **语音交互** | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> | 已可用 |
 | **鼠标与键盘输入** | <video src="https://github.com/user-attachments/assets/57936a0b-08b9-43d8-b75d-f72d765a2ec1" controls muted playsinline width="320"></video> | 计划中 |
 | **直播输出** | <video src="https://github.com/user-attachments/assets/658ca16c-d999-4118-8526-d6d23d470436" controls muted playsinline width="320"></video> | 开发中 |
 | **多模态交互** | <video src="https://github.com/user-attachments/assets/da0b08ab-a04b-46d0-8f4b-65e7204cc9bc" controls muted playsinline width="320"></video> | 计划中 |
@@ -152,8 +153,8 @@ pnpm dev:web
 
 ## 路线图
 
-- [ ] 创建由文字选项推动的交互世界。（开发中）
-- [ ] 持续运行世界，支持本地预览和直播输出。（开发中）
+- [x] 创建由文字、语音和图片交互推动的世界。
+- [ ] 持续完善本地预览、回放与直播输出。（开发中）
 - [ ] 支持更多直播平台。
 - [ ] 支持更多交互输入。
 - [ ] 探索新的交互方式和游戏形态。

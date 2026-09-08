@@ -48,10 +48,12 @@ Routes do not call providers or mutate persistence directly. Services coordinate
 | `POST` | `/api/worlds/:worldId/run/scenes/:sceneId/activate` | Enter a saved scene and run its version without starting generation. |
 | `PATCH` | `/api/worlds/:worldId/run/config` | Apply generation changes to a stopped run. |
 | `POST` | `/api/worlds/:worldId/run/scenes/:sceneId/options` | Regenerate the four choices for a scene with its version's vision model. |
+| `POST` | `/api/worlds/:worldId/run/scenes/:sceneId/media/cache` | Cache an externally hosted scene video locally and update the saved scene URL. |
 | `DELETE` | `/api/worlds/:worldId/run/scenes/:sceneId` | Delete a non-root scene and its descendant branch. Version roots are deleted through run history. |
 | `DELETE` | `/api/worlds/:worldId/run/versions/:versionId` | Delete a stopped historical run version and its generated scenes. |
 | `GET` / `PUT` | `/api/settings/providers` | Read or update local provider and chat settings. |
 | `POST` | `/api/transcription?language=zh|en` | Transcribe a browser-recorded audio body with the local whisper.cpp runtime. |
+| `GET` | `/api/media/:mediaId` | Stream a locally cached generated video with HTTP Range support. |
 | `GET` | `/api/events` | Subscribe to snapshots, status, scene, and error events. |
 | `WS` | `/api/worlds/:worldId/run/webrtc` | Browser-output signaling endpoint. |
 
@@ -59,12 +61,12 @@ Routes do not call providers or mutate persistence directly. Services coordinate
 
 The WebRTC route is currently a signaling placeholder. It accepts a WebSocket connection and reports that browser-output signaling is not configured; browser transport is tracked as follow-up work.
 
-Local data is stored under `~/.infinite-world/`. The root `state.json` contains the project index, active project, provider settings, and chat settings. Each project has its own configuration, project state, and run-version directories. Set `INFINITE_WORLD_DATA_DIR` to change the root directory. Secrets are stored locally and never included in API snapshots.
+Local data is stored under `~/.infinite-world/`. The root `state.json` contains the project index, active project, provider settings, and chat settings. Each project has its own configuration, project state, and run-version directories. Generated videos are cached under `media/`, de-duplicated by their source URL. Set `INFINITE_WORLD_DATA_DIR` to change the root directory. Secrets are stored locally and never included in API snapshots.
 
 Provider credentials and live integration settings are product configuration. They are managed from
 the Web Settings page and are not service environment variables.
 
-World configuration stores the current defaults for vision and video. Each run version snapshots the full generation configuration, and continuing a story branch uses the source version's snapshot. Vision models can use either the configured Google key or the configured FAL key through the corresponding AI adapter; video models use the FAL client and the configured FAL key. A missing provider key leaves that capability as `none`.
+World configuration stores the current defaults for vision and video. Each run version snapshots the full generation configuration, and continuing a story branch uses the source version's snapshot. Vision models can use Google, FAL Gemini, or an OpenAI-compatible provider; video models use the FAL client and the configured FAL key. A missing provider key leaves that capability as `none`.
 
 Video configuration stores a stable model-family ID rather than a provider endpoint. The API resolves that family to a text-to-video endpoint when the first scene has no initial image, or an image-to-video endpoint when it does. The initial image is used only for the first scene. Supported durations, frame rates, resolutions, aspect ratios, and endpoint mappings live in the shared model catalog.
 

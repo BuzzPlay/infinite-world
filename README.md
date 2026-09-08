@@ -29,7 +29,7 @@ Understand a world, simulate how it changes, and interact with what happens next
 
 Infinite World combines multimodal understanding, world simulation, and interaction in one continuous loop:
 
-- **Understand.** Read text, images, video, audio, and external events.
+- **Understand.** Read prompts, images, and generated scene context.
 - **Simulate.** Turn those inputs into world state, rules, and possible next actions.
 - **Interact.** Let people, agents, and events influence what happens next.
 - **Continue.** Record scenes, choices, state changes, and branches as the world runs.
@@ -50,10 +50,11 @@ Infinite World is open source so developers, creators, and researchers can build
 
 | Direction | Progress |
 | --- | --- |
-| Text interaction | Use text input and choices to influence the world state and upcoming scenes. In development. |
-| Voice interaction | Use browser voice input for the same world interaction. In development. |
-| Continuous worlds | Preserve world state and context across scenes. Continuous generation is being improved. |
-| Local preview | Configure worlds, run them locally, and inspect history and metrics. Prototype available. |
+| Text interaction | Use text input and choices to influence the world state and upcoming scenes. Available. |
+| Voice interaction | Use voice input to influence the world. Available. |
+| Image interaction | Select visible areas in a scene's final frame to choose what happens next. Available. |
+| Continuous worlds | Preserve world state and context across scenes and branches. Available. |
+| Local preview and replay | Run worlds locally, revisit saved branches, and play cached generated video. Available. |
 | Live | Interactive live streaming is in development. |
 | More interactions | Chat, audio, mouse, and keyboard input are planned. |
 
@@ -84,8 +85,8 @@ On Linux, install or build the `whisper.cpp` CLI and FFmpeg with your distributi
 manager. On Windows, download or build the Windows CLI and add its directory to `PATH`.
 
 The API build prepares the `ggml-base` Whisper model automatically and stores it outside the
-repository. The first build or first voice request needs an Internet connection. Set
-`INFINITE_WORLD_WHISPER_BIN` is optional when `whisper-cli` is already on `PATH`. Set it only when
+repository. The first build or first voice request needs an Internet connection.
+`INFINITE_WORLD_WHISPER_BIN` is optional when `whisper-cli` is already on `PATH`; set it only when
 the executable has a custom name or location. `INFINITE_WORLD_WHISPER_MODEL` is also optional; set
 it only when using a custom model path.
 
@@ -126,7 +127,8 @@ The runtime separates seven concepts:
 | **Branch** | A possible continuation created by an option or event. |
 | **History** | The recorded states, scenes, choices, and paths of a world. |
 | **Output** | A way to observe or share a run, such as a preview or RTMP stream. |
-| **Preview** | A local surface for testing and shaping a world before sharing it. |
+| **Preview** | A local surface for running and shaping a world before sharing it. |
+| **Replay** | A way to revisit a saved path through a world's scenes and choices. |
 
 See the [architecture documentation](docs/architecture/README.md) for runtime boundaries, lifecycle, and API contracts.
 
@@ -136,8 +138,8 @@ These clips show the interaction directions. Current implementation status is li
 
 | Direction | Concept video | Status |
 | --- | --- | --- |
-| **Text and image** | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> | In development |
-| **Sound** | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> | Planned |
+| **Text and image** | <video src="https://github.com/user-attachments/assets/9c5637d7-d2ab-41da-818a-b4fd6f896a19" controls muted playsinline width="320"></video> | Available |
+| **Voice** | <video src="https://github.com/user-attachments/assets/61d4f497-0a35-49f9-97e8-6941d47ec550" controls muted playsinline width="320"></video> | Available |
 | **Mouse and keyboard** | <video src="https://github.com/user-attachments/assets/57936a0b-08b9-43d8-b75d-f72d765a2ec1" controls muted playsinline width="320"></video> | Planned |
 | **Live output** | <video src="https://github.com/user-attachments/assets/658ca16c-d999-4118-8526-d6d23d470436" controls muted playsinline width="320"></video> | In development |
 | **Multimodal interaction** | <video src="https://github.com/user-attachments/assets/da0b08ab-a04b-46d0-8f4b-65e7204cc9bc" controls muted playsinline width="320"></video> | Planned |
@@ -152,8 +154,8 @@ These clips show the interaction directions. Current implementation status is li
 
 ## Roadmap
 
-- [ ] Create interactive worlds shaped by text-based choices. *(In development)*
-- [ ] Run worlds continuously with local preview and live output. *(In development)*
+- [x] Create interactive worlds shaped by text, voice, and image interactions.
+- [ ] Continue improving local preview, replay, and live output. *(In development)*
 - [ ] Connect more live platforms.
 - [ ] Add more interaction inputs.
 - [ ] Explore new interaction formats and game forms.
